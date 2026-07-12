@@ -1,0 +1,7 @@
+node_modules/
+database.db
+.gemini/
+.agents/
+.cursor/
+*.log
+*.db-journal
