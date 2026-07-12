@@ -26,6 +26,7 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.db'), (err) => {
     console.error('Error opening database:', err);
   } else {
     console.log('Connected to SQLite database.');
+    db.run("PRAGMA journal_mode = WAL");
     createTables();
   }
 });
@@ -271,13 +272,28 @@ app.get('/api/user/state', authenticateToken, (req, res) => {
   const userId = req.user.id;
 
   db.get("SELECT * FROM users WHERE id = ?", [userId], (err, profile) => {
-    if (err || !profile) return res.status(500).json({ error: 'User profile not found' });
+    if (err || !profile) {
+      console.error('Database user lookup error:', err);
+      return res.status(500).json({ error: 'User profile not found' });
+    }
 
     db.all("SELECT * FROM saved_items WHERE user_id = ?", [userId], (err, savedList) => {
+      let activeSavedList = savedList || [];
+      if (err) {
+        console.error('Database saved_items lookup error:', err);
+        activeSavedList = [];
+      }
+
       db.all("SELECT * FROM prayers WHERE user_id = ?", [userId], (err, prayersList) => {
+        let activePrayersList = prayersList || [];
+        if (err) {
+          console.error('Database prayers lookup error:', err);
+          activePrayersList = [];
+        }
+
         db.get("SELECT * FROM user_settings WHERE user_id = ?", [userId], (err, settings) => {
           let activeSettings = settings;
-          if (!activeSettings) {
+          if (err || !activeSettings) {
             db.run("INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)", [userId]);
             activeSettings = {
               dark_mode: 0,
@@ -290,41 +306,46 @@ app.get('/api/user/state', authenticateToken, (req, res) => {
             };
           }
           
-          const responseState = {
-            profile: {
-              name: profile.name,
-              email: profile.email,
-              avatar: profile.avatar,
-              streak: profile.streak,
-              joinedDate: profile.joined_date
-            },
-            saved: {
-              highlights: savedList.filter(i => i.type === 'highlight').map(i => ({
-                id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, color: i.color, translation: i.translation, time: i.created_at
+          try {
+            const responseState = {
+              profile: {
+                name: profile.name,
+                email: profile.email,
+                avatar: profile.avatar,
+                streak: profile.streak,
+                joinedDate: profile.joined_date
+              },
+              saved: {
+                highlights: activeSavedList.filter(i => i && i.type === 'highlight').map(i => ({
+                  id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, color: i.color, translation: i.translation, time: i.created_at
+                })),
+                bookmarks: activeSavedList.filter(i => i && i.type === 'bookmark').map(i => ({
+                  id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, translation: i.translation, time: i.created_at
+                })),
+                notes: activeSavedList.filter(i => i && i.type === 'note').map(i => ({
+                  id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, noteText: i.note_text, translation: i.translation, time: i.created_at
+                }))
+              },
+              prayers: activePrayersList.map(p => ({
+                id: p.id, text: p.text, isPublic: !!p.is_public, isAnswered: !!p.is_answered, date: p.created_at
               })),
-              bookmarks: savedList.filter(i => i.type === 'bookmark').map(i => ({
-                id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, translation: i.translation, time: i.created_at
-              })),
-              notes: savedList.filter(i => i.type === 'note').map(i => ({
-                id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, noteText: i.note_text, translation: i.translation, time: i.created_at
-              }))
-            },
-            prayers: prayersList.map(p => ({
-              id: p.id, text: p.text, isPublic: !!p.is_public, isAnswered: !!p.is_answered, date: p.created_at
-            })),
-            settings: {
-              darkMode: !!activeSettings.dark_mode,
-              notifications: !!activeSettings.notifications,
-              offline: !!activeSettings.offline,
-              systemLanguage: activeSettings.system_language,
-              reader: {
-                fontSize: activeSettings.font_size,
-                lineHeight: activeSettings.line_height,
-                verseLayout: activeSettings.verse_layout
+              settings: {
+                darkMode: !!activeSettings.dark_mode,
+                notifications: !!activeSettings.notifications,
+                offline: !!activeSettings.offline,
+                systemLanguage: activeSettings.system_language,
+                reader: {
+                  fontSize: activeSettings.font_size,
+                  lineHeight: activeSettings.line_height,
+                  verseLayout: activeSettings.verse_layout
+                }
               }
-            }
-          };
-          res.json(responseState);
+            };
+            res.json(responseState);
+          } catch(compilationError) {
+            console.error('Error compiling user state response:', compilationError);
+            res.status(500).json({ error: 'Internal processing error' });
+          }
         });
       });
     });
