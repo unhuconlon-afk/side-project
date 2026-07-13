@@ -44,9 +44,14 @@ function createTables() {
         email TEXT,
         avatar TEXT,
         streak INTEGER DEFAULT 0,
-        joined_date TEXT
+        joined_date TEXT,
+        last_check_in_date TEXT
       )
-    `);
+    `, () => {
+      db.run("ALTER TABLE users ADD COLUMN last_check_in_date TEXT", (err) => {
+        // Ignore column already exists error
+      });
+    });
 
     // 2. Saved Items Table
     db.run(`
@@ -207,11 +212,12 @@ app.post('/api/auth/register', (req, res) => {
   const passwordHash = bcrypt.hashSync(password, salt);
   const avatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}`;
   const joinedDate = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const today = new Date().toISOString().split('T')[0];
 
   db.run(
-    `INSERT INTO users (username, password_hash, name, email, avatar, streak, joined_date)
-     VALUES (?, ?, ?, ?, ?, 1, ?)`,
-    [username, passwordHash, name, email, avatar, joinedDate],
+    `INSERT INTO users (username, password_hash, name, email, avatar, streak, joined_date, last_check_in_date)
+     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
+    [username, passwordHash, name, email, avatar, joinedDate, today],
     function(err) {
       if (err) {
         if (err.message.includes('UNIQUE')) {
@@ -246,9 +252,13 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(400).json({ error: 'Invalid username or password' });
     }
 
-    // Increment streak on daily check in (just incrementing for demo purposes)
-    const newStreak = user.streak + 1;
-    db.run("UPDATE users SET streak = ? WHERE id = ?", [newStreak, user.id]);
+    // Increment streak on daily check in (only once per calendar day)
+    const today = new Date().toISOString().split('T')[0];
+    let newStreak = user.streak;
+    if (user.last_check_in_date !== today) {
+      newStreak = (user.streak || 0) + 1;
+      db.run("UPDATE users SET streak = ?, last_check_in_date = ? WHERE id = ?", [newStreak, today, user.id]);
+    }
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     res.json({
