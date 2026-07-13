@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AuraBible — Daily Devotional & Scripture Companion</title>
+  <title>Gratia — Daily Devotional & Scripture Companion</title>
   <link rel="stylesheet" href="styles-core.css">
 </head>
 <body>
@@ -12,8 +12,8 @@
   <div id="auth-container" style="display: none; align-items: center; justify-content: center; min-height: 100vh; background-color: var(--bg-primary); padding: 20px; box-sizing: border-box; z-index: 1000; position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow-y: auto;">
     <div class="auth-card" style="width: 100%; max-width: 400px; padding: 32px; border-radius: var(--radius-lg); background-color: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: var(--card-shadow); display: flex; flex-direction: column; gap: 20px;">
       <div class="auth-brand" style="display: flex; align-items: center; gap: 12px; justify-content: center;">
-        <div class="brand-icon" style="width: 40px; height: 40px; font-size: 20px;">A</div>
-        <h2 style="font-size: 24px; margin: 0; font-family: var(--font-sans);">AuraBible</h2>
+        <img class="brand-icon" src="logo.png" style="width: 40px; height: 40px; display: inline-block;" alt="Logo">
+        <h2 style="font-size: 24px; margin: 0; font-family: var(--font-sans);">Gratia</h2>
       </div>
       <p class="auth-subtitle" style="font-size: 13px; color: var(--text-muted); text-align: center; margin: -10px 0 10px 0;" id="auth-subtitle-text">Your Daily Devotional & Scripture Companion</p>
       
@@ -72,8 +72,8 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-logo-group">
-          <div class="brand-icon">A</div>
-          <div class="brand-name">AuraBible</div>
+          <img class="brand-icon" src="logo.png" alt="Logo">
+          <div class="brand-name">Gratia</div>
         </div>
         <button class="sidebar-toggle-btn" id="sidebar-collapse-btn" title="Collapse Sidebar">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -118,8 +118,8 @@
           
           <!-- Collapsed Brand Group (visible when sidebar is closed) -->
           <div class="collapsed-brand-group" id="collapsed-brand-group" style="align-items: center; gap: 8px;">
-            <div class="brand-icon" style="width: 28px; height: 28px; font-size: 14px; display: inline-flex; pointer-events: none;">A</div>
-            <span style="font-weight: 700; font-size: 15px; color: var(--text-primary); font-family: var(--font-sans); margin-left: 2px; pointer-events: none;">AuraBible</span>
+            <img class="brand-icon" src="logo.png" style="width: 28px; height: 28px; display: inline-flex; pointer-events: none;" alt="Logo">
+            <span style="font-weight: 700; font-size: 15px; color: var(--text-primary); font-family: var(--font-sans); margin-left: 2px; pointer-events: none;">Gratia</span>
             <button class="header-btn" id="pill-sidebar-toggle" title="Expand Sidebar" style="margin-left: 4px;">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -723,20 +723,20 @@
         <div style="max-width: var(--max-content-width); margin: 0 auto; display: flex; flex-direction: column; gap: 12px;">
           <!-- Copyright & Translation -->
           <div style="font-size: 11px; line-height: 1.5; color: var(--text-muted);" id="footer-copyright-text">
-            © 2026 AuraBible — Daily Devotional & Scripture Companion. All rights reserved. Scripture quotations are from the World English Bible (WEB), King James Version (KJV), and public domain translations.
+            © 2026 Gratia — Daily Devotional & Scripture Companion. All rights reserved. Scripture quotations are from the World English Bible (WEB), King James Version (KJV), and public domain translations.
           </div>
           
           <!-- Social links -->
           <div style="display: flex; justify-content: center; gap: 16px; align-items: center; flex-wrap: wrap;">
-            <a href="https://facebook.com/aurabible" target="_blank" class="footer-social-link" style="transition: var(--transition-smooth); display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;" title="Facebook">
+            <a href="https://facebook.com/gratia" target="_blank" class="footer-social-link" style="transition: var(--transition-smooth); display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;" title="Facebook">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
               <span>Facebook</span>
             </a>
-            <a href="https://instagram.com/aurabible" target="_blank" class="footer-social-link" style="transition: var(--transition-smooth); display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;" title="Instagram">
+            <a href="https://instagram.com/gratia" target="_blank" class="footer-social-link" style="transition: var(--transition-smooth); display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;" title="Instagram">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
               <span>Instagram</span>
             </a>
-            <a href="https://youtube.com/aurabible" target="_blank" class="footer-social-link" style="transition: var(--transition-smooth); display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;" title="YouTube">
+            <a href="https://youtube.com/gratia" target="_blank" class="footer-social-link" style="transition: var(--transition-smooth); display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;" title="YouTube">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>
               <span>YouTube</span>
             </a>

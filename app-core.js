@@ -1,11 +1,11 @@
-// AuraBible Web Application Controller
+// Gratia Web Application Controller
 // Orchestrates local state, database lookups, page transitions, and UI interactions.
 
 document.addEventListener('DOMContentLoaded', () => {
   // Global Error Handler for UI Alert Debugging
   window.addEventListener('error', function(e) {
     console.error('Captured Runtime Error:', e.error);
-    alert('AuraBible runtime error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno);
+    alert('Gratia runtime error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno);
   });
 
   // --- 1. STATE MANAGEMENT ---
@@ -605,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="search-results" id="search-results-list">
         <div style="text-align:center; margin-top:40px; color:var(--text-muted);">
-          <p>Type to search AuraBible content...</p>
+          <p>Type to search Gratia content...</p>
         </div>
       </div>
     `,
@@ -804,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;" id="share-card-ref">
                 Psalm 23:1
               </div>
-              <div style="font-size:10px; font-weight:600; opacity:0.6;">AuraBible</div>
+              <div style="font-size:10px; font-weight:600; opacity:0.6;">Gratia</div>
             </div>
           </div>
           <div style="width:100%; display:flex; flex-direction:column; gap:16px;">
