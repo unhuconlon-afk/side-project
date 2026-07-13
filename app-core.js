@@ -175,6 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
       sermonsListHeader: 'My Sermon Journal',
       sermonsSidebarHeader: 'Keep Sermon Notes',
       sermonsSubmitBtn: 'Save Sermon Notes',
+      sermonPlaceholderTitle: 'Sermon Title',
+      sermonPlaceholderSpeaker: 'Speaker',
+      sermonPlaceholderPassage: 'Scripture Reference',
+      sermonPlaceholderNotes: 'Take sermon notes, outlines, or summaries here...',
       searchPlaceholder: 'Search references, keywords, plans...'
     },
     vi: {
@@ -279,6 +283,10 @@ document.addEventListener('DOMContentLoaded', () => {
       sermonsComposerHeader: 'Ghi lại bài giảng mới',
       sermonsListHeader: 'Nhật ký Bài giảng',
       sermonsSubmitBtn: 'Lưu Ghi Chép',
+      sermonPlaceholderTitle: 'Chủ đề bài giảng',
+      sermonPlaceholderSpeaker: 'Diễn giả',
+      sermonPlaceholderPassage: 'Phân đoạn Kinh Thánh',
+      sermonPlaceholderNotes: 'Ghi chép nội dung bài giảng tại đây...',
       searchPlaceholder: 'Tìm kiếm tham chiếu, từ khóa, kế hoạch...'
     }
   };
@@ -1621,6 +1629,15 @@ document.addEventListener('DOMContentLoaded', () => {
         input.placeholder = dict.searchPlaceholder || "Search references, keywords, plans...";
       }
     });
+
+    const setPlaceholder = (id, text) => {
+      const el = document.getElementById(id);
+      if (el) el.placeholder = text;
+    };
+    setPlaceholder('sermon-input-title', dict.sermonPlaceholderTitle);
+    setPlaceholder('sermon-input-speaker', dict.sermonPlaceholderSpeaker);
+    setPlaceholder('sermon-input-passage', dict.sermonPlaceholderPassage);
+    setPlaceholder('sermon-input-notes', dict.sermonPlaceholderNotes);
 
     const prayerInput = document.getElementById('prayer-input');
     if (prayerInput) {
