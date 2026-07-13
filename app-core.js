@@ -2,6 +2,12 @@
 // Orchestrates local state, database lookups, page transitions, and UI interactions.
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Global Error Handler for UI Alert Debugging
+  window.addEventListener('error', function(e) {
+    console.error('Captured Runtime Error:', e.error);
+    alert('AuraBible runtime error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno);
+  });
+
   // --- 1. STATE MANAGEMENT ---
   const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
   const DEFAULT_STATE = {
@@ -2016,48 +2022,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const chapter = state.readerState.chapter;
     const translation = state.readerState.translation;
 
-    elements.readerBookBtn.textContent = getBookName(bookId);
+    if (elements.readerBookBtn) elements.readerBookBtn.textContent = getBookName(bookId);
     const isVi = (state.settings.systemLanguage === 'vi');
-    elements.readerChapterBtn.textContent = isVi ? `Chương ${chapter}` : `Chapter ${chapter}`;
-    elements.readerVersionBtn.textContent = translation;
+    if (elements.readerChapterBtn) elements.readerChapterBtn.textContent = isVi ? `Chương ${chapter}` : `Chapter ${chapter}`;
+    if (elements.readerVersionBtn) elements.readerVersionBtn.textContent = translation;
 
     // Render text display
-    elements.bibleTextDisplay.innerHTML = '';
-    
-    // Set custom font settings
-    elements.bibleTextDisplay.style.fontSize = `${state.settings.reader.fontSize}px`;
-    elements.bibleTextDisplay.style.lineHeight = `${state.settings.reader.lineHeight}`;
-
-    if (state.settings.reader.verseLayout === 'verse') {
-      elements.bibleTextDisplay.classList.add('layout-verse');
-    } else {
-      elements.bibleTextDisplay.classList.remove('layout-verse');
-    }
-
-    // Get all verses in this chapter
-    const verseCount = window.BIBLE_DATA.getVerseCount(translation, bookId, chapter);
-    for (let i = 1; i <= verseCount; i++) {
-      const verseText = window.BIBLE_DATA.getVerseText(translation, bookId, chapter, i);
-      const span = document.createElement('span');
-      span.className = 'verse';
-      span.setAttribute('data-verse', i);
+    if (elements.bibleTextDisplay) {
+      elements.bibleTextDisplay.innerHTML = '';
       
-      // Apply highlights if any
-      const savedH = state.saved.highlights.find(h => h.bookId === bookId && h.chapter === chapter && h.verseNum === i);
-      if (savedH) {
-        if (savedH.color.startsWith('#')) {
-          span.style.backgroundColor = getHighlightColorCode(savedH.color);
-        } else {
-          span.classList.add(`highlighted-${savedH.color}`);
-        }
+      // Set custom font settings
+      elements.bibleTextDisplay.style.fontSize = `${state.settings.reader.fontSize}px`;
+      elements.bibleTextDisplay.style.lineHeight = `${state.settings.reader.lineHeight}`;
+
+      if (state.settings.reader.verseLayout === 'verse') {
+        elements.bibleTextDisplay.classList.add('layout-verse');
+      } else {
+        elements.bibleTextDisplay.classList.remove('layout-verse');
       }
 
-      span.innerHTML = `<span class="verse-num">${i}</span>${verseText} `;
-      
-      span.addEventListener('click', (e) => {
-        toggleVerseSelection(span, i);
-      });
-      elements.bibleTextDisplay.appendChild(span);
+      // Get all verses in this chapter
+      const verseCount = window.BIBLE_DATA.getVerseCount(translation, bookId, chapter);
+      for (let i = 1; i <= verseCount; i++) {
+        const verseText = window.BIBLE_DATA.getVerseText(translation, bookId, chapter, i);
+        const span = document.createElement('span');
+        span.className = 'verse';
+        span.setAttribute('data-verse', i);
+        
+        // Apply highlights if any
+        const savedH = state.saved.highlights.find(h => h.bookId === bookId && h.chapter === chapter && h.verseNum === i);
+        if (savedH) {
+          if (savedH.color.startsWith('#')) {
+            span.style.backgroundColor = getHighlightColorCode(savedH.color);
+          } else {
+            span.classList.add(`highlighted-${savedH.color}`);
+          }
+        }
+
+        span.innerHTML = `<span class="verse-num">${i}</span>${verseText} `;
+        
+        span.addEventListener('click', (e) => {
+          toggleVerseSelection(span, i);
+        });
+        elements.bibleTextDisplay.appendChild(span);
+      }
     }
 
     clearVerseSelection();
@@ -2072,6 +2080,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateVerseSelectionUI() {
+    if (!elements.bibleTextDisplay) return;
     const verses = elements.bibleTextDisplay.querySelectorAll('.verse');
     verses.forEach((span) => {
       const vNum = parseInt(span.getAttribute('data-verse'));
@@ -4027,21 +4036,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Quick Action Buttons router links
-  document.querySelectorAll('.quick-action-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+  // Quick Action Buttons router links using event delegation
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.quick-action-btn');
+    if (btn) {
       const action = btn.getAttribute('data-action');
       if (action === 'read-bible') navigateTo('bible');
       else if (action === 'new-prayer') navigateTo('prayer');
       else if (action === 'view-saved') navigateTo('saved');
       else if (action === 'view-plans') navigateTo('plans');
-    });
+    }
   });
 
-  // Header settings button trigger
-  elements.settingsTriggerBtn.addEventListener('click', () => {
-    navigateTo('settings');
-  });
+  // Header settings button trigger with safety
+  if (elements.settingsTriggerBtn) {
+    elements.settingsTriggerBtn.addEventListener('click', () => {
+      navigateTo('settings');
+    });
+  }
+
+  // Active Plan Continue button click listener with safety
+  const activePlanContinueBtn = document.getElementById('home-active-plan-continue');
+  if (activePlanContinueBtn) {
+    activePlanContinueBtn.addEventListener('click', () => {
+      if (state.plansProgress.active && state.plansProgress.active.planId) {
+        startPlanSession(state.plansProgress.active.planId, state.plansProgress.active.currentDay);
+      }
+    });
+  }
 
   // --- 16. MODAL SYSTEM HELPERS ---
   function closeAllModals() {
