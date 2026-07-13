@@ -170,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
       shareCardStyleLabel: 'Select Theme Style',
       shareCardBgLabel: 'Peace & Custom Backgrounds',
       navSermons: 'Sermons',
+      navAdmin: 'Admin Console',
       sermonsComposerHeader: 'Record a New Sermon',
       sermonsListHeader: 'My Sermon Journal',
       sermonsSidebarHeader: 'Keep Sermon Notes',
@@ -274,6 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
       shareCardStyleLabel: 'Chọn Kiểu Giao Diện',
       shareCardBgLabel: 'Hình Nền Tĩnh Nguyện & Tự Chọn',
       navSermons: 'Bài giảng',
+      navAdmin: 'Bảng quản trị',
       sermonsComposerHeader: 'Ghi lại bài giảng mới',
       sermonsListHeader: 'Nhật ký Bài giảng',
       sermonsSubmitBtn: 'Lưu Ghi Chép',
@@ -1033,20 +1035,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarNav = document.getElementById('sidebar-nav-container');
     const bottomNav = document.getElementById('bottom-nav-container');
     
+    const lang = state.settings.systemLanguage || 'en';
+    const dict = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS['en'];
+    
+    let items = [...window.BIBLE_DATA.navigationItems];
+    
+    // Add Admin Console if user is admin
+    if (state.profile && state.profile.isAdmin) {
+      if (!items.find(i => i.target === 'admin')) {
+        items.push({
+          target: 'admin',
+          iconHtml: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`,
+          labelKey: 'navAdmin'
+        });
+      }
+    }
+    
     if (sidebarNav) {
-      sidebarNav.innerHTML = window.BIBLE_DATA.navigationItems.map(item => `
+      sidebarNav.innerHTML = items.map(item => `
         <div class="nav-link" data-target="${item.target}">
           ${item.iconHtml}
-          <span>${item.target}</span>
+          <span>${dict[item.labelKey] || item.target}</span>
         </div>
       `).join('');
     }
     
     if (bottomNav) {
-      bottomNav.innerHTML = window.BIBLE_DATA.navigationItems.map(item => `
+      bottomNav.innerHTML = items.map(item => `
         <div class="bottom-link" data-target="${item.target}">
           ${item.iconHtml}
-          <span>${item.target}</span>
+          <span>${dict[item.labelKey] || item.target}</span>
         </div>
       `).join('');
     }
@@ -1266,12 +1284,14 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (targetView === 'meetings') title = dict.navMeetings;
       else if (targetView === 'saved') title = dict.navSaved;
       else if (targetView === 'settings') title = dict.settingsTitle;
+      else if (targetView === 'admin') title = dict.navAdmin || 'Admin Console';
       else title = targetView.charAt(0).toUpperCase() + targetView.slice(1);
       
       elements.viewTitle.textContent = title;
       
-      // Update Navigation styling
-      elements.navLinks.forEach(link => {
+      // Update Navigation styling dynamically querying active elements in DOM
+      const activeLinks = document.querySelectorAll('.nav-link, .bottom-link');
+      activeLinks.forEach(link => {
         if (link.getAttribute('data-target') === targetView) {
           link.classList.add('active');
         } else {
@@ -1292,15 +1312,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (targetView === 'meetings') renderMeetingsView();
       if (targetView === 'saved') renderSavedView();
       if (targetView === 'profile') renderProfileView();
+      if (targetView === 'admin') renderAdminView();
     }
   }
 
-  // Bind Router Events
-  elements.navLinks.forEach(link => {
-    link.addEventListener('click', () => {
+  // Bind Router Events using event delegation
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('.nav-link, .bottom-link');
+    if (link) {
       const target = link.getAttribute('data-target');
       navigateTo(target);
-    });
+    }
   });
 
   // Desktop Sidebar Toggle (Collapse / Expand)
@@ -1487,6 +1509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateNavLink('community', dict.navCommunity);
     updateNavLink('meetings', dict.navMeetings);
     updateNavLink('saved', dict.navSaved);
+    updateNavLink('admin', dict.navAdmin);
 
     // Update Settings UI texts
     const settingsHeader = document.getElementById('settings-title-label');
@@ -3279,13 +3302,23 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = `saved-item-card ${p.answered ? 'answered' : ''}`;
             card.style.borderLeft = p.answered ? '4px solid #5CB85C' : '4px solid var(--accent-color)';
             
+            let deletePrayerBtnHTML = '';
+            if (state.profile && state.profile.isAdmin) {
+              deletePrayerBtnHTML = `
+                <button class="btn btn-secondary" onclick="window.AURA_APP.deletePublicPrayer('${p.id}')" style="padding:4px 8px; font-size:11px; color:#D9534F; margin-left:auto; border-color: rgba(217, 83, 79, 0.2);">🗑</button>
+              `;
+            }
+
             card.innerHTML = `
-              <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-                <img src="${p.avatar || 'https://api.dicebear.com/7.x/adventurer/svg?seed=guest'}" style="width: 32px; height: 32px; border-radius: 50%;" alt="avatar">
-                <div>
-                  <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">${p.author}</div>
-                  <div style="font-size: 11px; color: var(--text-muted);">${isVi ? 'Đăng' : 'Posted'} ${translateTime(p.time || p.date || 'Just now')}</div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <img src="${p.avatar || 'https://api.dicebear.com/7.x/adventurer/svg?seed=guest'}" style="width: 32px; height: 32px; border-radius: 50%;" alt="avatar">
+                  <div>
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">${p.author}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">${isVi ? 'Đăng' : 'Posted'} ${translateTime(p.time || p.date || 'Just now')}</div>
+                  </div>
                 </div>
+                ${deletePrayerBtnHTML}
               </div>
               <p style="font-size:14px; margin: 8px 0; line-height:1.5;">${p.text}</p>
               
@@ -3429,6 +3462,112 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Global methods for prayer
   window.AURA_APP = window.AURA_APP || {};
+
+  window.AURA_APP.deleteFeedPost = function(feedId) {
+    const token = localStorage.getItem('aurabible_token');
+    if (!token) return;
+    if (!confirm('Are you sure you want to delete this community post?')) return;
+
+    fetch(API_BASE + `/api/admin/feed/${feedId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        showToast(data.error);
+      } else {
+        showToast('Post deleted successfully');
+        renderCommunityView();
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Error deleting post');
+    });
+  };
+
+  window.AURA_APP.deleteFeedComment = function(commentId) {
+    const token = localStorage.getItem('aurabible_token');
+    if (!token) return;
+    if (!confirm('Are you sure you want to delete this comment?')) return;
+
+    fetch(API_BASE + `/api/admin/comment/${commentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        showToast(data.error);
+      } else {
+        showToast('Comment deleted successfully');
+        renderCommunityView();
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Error deleting comment');
+    });
+  };
+
+  window.AURA_APP.deletePublicPrayer = function(prayerId) {
+    const token = localStorage.getItem('aurabible_token');
+    if (!token) return;
+    if (!confirm('Are you sure you want to delete this public prayer request?')) return;
+
+    fetch(API_BASE + `/api/admin/prayer/${prayerId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        showToast(data.error);
+      } else {
+        showToast('Prayer request deleted successfully');
+        renderPrayerView();
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Error deleting prayer request');
+    });
+  };
+
+  function renderAdminView() {
+    const token = localStorage.getItem('aurabible_token');
+    if (!token) return;
+
+    fetch(API_BASE + '/api/admin/stats', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        showToast(data.error);
+        return;
+      }
+      const usersEl = document.getElementById('admin-stat-users');
+      const prayersEl = document.getElementById('admin-stat-prayers');
+      const feedEl = document.getElementById('admin-stat-feed');
+      
+      if (usersEl) usersEl.textContent = data.totalUsers;
+      if (prayersEl) prayersEl.textContent = data.totalPrayers;
+      if (feedEl) feedEl.textContent = data.totalFeedPosts;
+    })
+    .catch(err => {
+      console.error('Error fetching admin stats:', err);
+    });
+  }
   
   window.AURA_APP.toggleAnswered = function(prayerId) {
     const pr = state.prayers.find(p => p.id === prayerId);
@@ -3619,25 +3758,46 @@ document.addEventListener('DOMContentLoaded', () => {
           if (item.comments && item.comments.length > 0) {
             commentsHTML = `
               <div style="background-color:var(--bg-primary); padding:12px; border-radius:8px; margin-top:12px; display:flex; flex-direction:column; gap:8px;">
-                ${item.comments.map(c => `
-                  <div style="font-size:12px;">
-                    <strong style="color:var(--accent-color);">${c.userName}:</strong> ${c.text}
-                    <span style="font-size:10px; color:var(--text-muted); float:right;">${translateTime(c.time)}</span>
-                  </div>
-                `).join('')}
+                ${item.comments.map(c => {
+                  let deleteCommentBtnHTML = '';
+                  if (state.profile && state.profile.isAdmin) {
+                    deleteCommentBtnHTML = `
+                      <span onclick="window.AURA_APP.deleteFeedComment('${c.id}')" style="color:#D9534F; cursor:pointer; font-weight:bold; margin-left:8px;" title="Delete Comment">🗑</span>
+                    `;
+                  }
+                  return `
+                    <div style="font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+                      <div>
+                        <strong style="color:var(--accent-color);">${c.userName}:</strong> ${c.text}
+                        ${deleteCommentBtnHTML}
+                      </div>
+                      <span style="font-size:10px; color:var(--text-muted);">${translateTime(c.time)}</span>
+                    </div>
+                  `;
+                }).join('')}
               </div>
             `;
           }
 
           const likedByMe = item.likedUsers && item.likedUsers.includes(currentUserId);
 
+          let deleteBtnHTML = '';
+          if (state.profile && state.profile.isAdmin) {
+            deleteBtnHTML = `
+              <button class="btn btn-secondary" onclick="window.AURA_APP.deleteFeedPost('${item.id}')" style="padding:4px 8px; font-size:11px; color:#D9534F; margin-left:auto; border-color: rgba(217, 83, 79, 0.2);">🗑</button>
+            `;
+          }
+
           feedItem.innerHTML = `
-            <div class="activity-header">
-              <img src="${item.userAvatar}" class="activity-avatar" alt="User">
-              <div>
-                <div class="activity-desc"><strong>${item.userName}</strong> ${translateActivityDetail(item.actionText)}</div>
-                <div class="activity-time">${translateTime(item.time)}</div>
+            <div class="activity-header" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <img src="${item.userAvatar}" class="activity-avatar" alt="User">
+                <div>
+                  <div class="activity-desc"><strong>${item.userName}</strong> ${translateActivityDetail(item.actionText)}</div>
+                  <div class="activity-time">${translateTime(item.time)}</div>
+                </div>
               </div>
+              ${deleteBtnHTML}
             </div>
             <div class="activity-content">
               ${blockContent}
@@ -5187,6 +5347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (isGuest) {
       hideAuthScreen();
       loadState();
+      renderNavigation();
       // Initialize or reset default local state profile for guest
       if (!state.profile || !state.profile.name || state.profile.name === 'Elijah Sterling' || state.profile.name === 'Loading...') {
         state.profile = {
@@ -5229,6 +5390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ui: { ...DEFAULT_STATE.ui }
       };
       
+      renderNavigation();
       verifyStreakValidity();
       applyTheme();
       applyLanguage();
@@ -5248,6 +5410,10 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('aurabible_guest');
     devoAudioPlaying = false;
     clearInterval(devoAudioInterval);
+    if (state && state.profile) {
+      state.profile.isAdmin = false;
+    }
+    renderNavigation();
     showAuthScreen();
   }
 

@@ -45,10 +45,14 @@ function createTables() {
         avatar TEXT,
         streak INTEGER DEFAULT 0,
         joined_date TEXT,
-        last_check_in_date TEXT
+        last_check_in_date TEXT,
+        is_admin INTEGER DEFAULT 0
       )
     `, () => {
       db.run("ALTER TABLE users ADD COLUMN last_check_in_date TEXT", (err) => {
+        // Ignore column already exists error
+      });
+      db.run("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0", (err) => {
         // Ignore column already exists error
       });
     });
@@ -141,19 +145,25 @@ function createTables() {
 }
 
 function seedMockData() {
+  const salt = bcrypt.genSaltSync(10);
+  const hash = bcrypt.hashSync('password123', salt);
+
+  // Guarantee Admin user exists in all databases
+  db.run(`
+    INSERT OR IGNORE INTO users (id, username, password_hash, name, email, avatar, streak, joined_date, is_admin)
+    VALUES (102, 'admin_holder', '${hash}', 'System Administrator', 'admin@gratia.com', 'https://api.dicebear.com/7.x/bottts/svg?seed=admin', 0, 'July 2026', 1)
+  `);
+
   db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
-    if (row && row.count === 0) {
+    if (row && row.count <= 1) { // seed if empty or only admin exists
       console.log('Seeding mock users and feed...');
       
-      const salt = bcrypt.genSaltSync(10);
-      const hash = bcrypt.hashSync('password123', salt);
-
       // Create Seed Users
       db.run(`
-        INSERT INTO users (id, username, password_hash, name, email, avatar, streak, joined_date)
+        INSERT INTO users (id, username, password_hash, name, email, avatar, streak, joined_date, is_admin)
         VALUES 
-        (100, 'sarah_jenkins', '${hash}', 'Sarah Jenkins', 'sarah@example.com', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80', 12, 'June 2026'),
-        (101, 'marcus_brody', '${hash}', 'Marcus Brody', 'marcus@example.com', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80', 5, 'May 2026')
+        (100, 'sarah_jenkins', '${hash}', 'Sarah Jenkins', 'sarah@example.com', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80', 12, 'June 2026', 0),
+        (101, 'marcus_brody', '${hash}', 'Marcus Brody', 'marcus@example.com', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80', 5, 'May 2026', 0)
       `, () => {
         
         // Seed Community Feed items
@@ -230,8 +240,8 @@ app.post('/api/auth/register', (req, res) => {
       // Initialize settings
       db.run(`INSERT INTO user_settings (user_id) VALUES (?)`, [userId]);
 
-      const token = jwt.sign({ id: userId, username }, JWT_SECRET, { expiresIn: '7d' });
-      res.status(201).json({ token, user: { id: userId, username, name, email, avatar, streak: 1, joinedDate } });
+       const token = jwt.sign({ id: userId, username }, JWT_SECRET, { expiresIn: '7d' });
+      res.status(201).json({ token, user: { id: userId, username, name, email, avatar, streak: 1, joinedDate, isAdmin: false } });
     }
   );
 });
@@ -252,7 +262,7 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(400).json({ error: 'Invalid username or password' });
     }
 
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user.id, username: user.username, isAdmin: user.is_admin === 1 }, JWT_SECRET, { expiresIn: '7d' });
     res.json({
       token,
       user: {
@@ -262,7 +272,8 @@ app.post('/api/auth/login', (req, res) => {
         email: user.email,
         avatar: user.avatar,
         streak: user.streak,
-        joinedDate: user.joined_date
+        joinedDate: user.joined_date,
+        isAdmin: user.is_admin === 1
       }
     });
   });
@@ -316,7 +327,8 @@ app.get('/api/user/state', authenticateToken, (req, res) => {
                 email: profile.email,
                 avatar: profile.avatar,
                 streak: profile.streak,
-                joinedDate: profile.joined_date
+                joinedDate: profile.joined_date,
+                isAdmin: profile.is_admin === 1
               },
               saved: {
                 highlights: activeSavedList.filter(i => i && i.type === 'highlight').map(i => ({
@@ -619,6 +631,67 @@ app.post('/api/community/comment', authenticateToken, (req, res) => {
       res.status(201).json({ message: 'Comment posted' });
     }
   );
+});
+
+// --- ADMIN MODERATION ENDPOINTS ---
+
+const requireAdmin = (req, res, next) => {
+  const userId = req.user.id;
+  db.get("SELECT is_admin FROM users WHERE id = ?", [userId], (err, row) => {
+    if (err || !row || row.is_admin !== 1) {
+      return res.status(403).json({ error: 'Access denied: Admin role required' });
+    }
+    next();
+  });
+};
+
+// Delete Community Feed Post
+app.delete('/api/admin/feed/:id', authenticateToken, requireAdmin, (req, res) => {
+  const feedId = req.params.id;
+  db.serialize(() => {
+    db.run("DELETE FROM feed_likes WHERE feed_item_id = ?", [feedId]);
+    db.run("DELETE FROM feed_comments WHERE feed_item_id = ?", [feedId]);
+    db.run("DELETE FROM community_feed WHERE id = ?", [feedId], (err) => {
+      if (err) return res.status(500).json({ error: 'Failed to delete post' });
+      res.json({ message: 'Post successfully deleted' });
+    });
+  });
+});
+
+// Delete Feed Comment
+app.delete('/api/admin/comment/:id', authenticateToken, requireAdmin, (req, res) => {
+  const commentId = req.params.id;
+  db.run("DELETE FROM feed_comments WHERE id = ?", [commentId], (err) => {
+    if (err) return res.status(500).json({ error: 'Failed to delete comment' });
+    res.json({ message: 'Comment successfully deleted' });
+  });
+});
+
+// Delete Public Prayer request
+app.delete('/api/admin/prayer/:id', authenticateToken, requireAdmin, (req, res) => {
+  const prayerId = req.params.id;
+  db.run("DELETE FROM prayers WHERE id = ?", [prayerId], (err) => {
+    if (err) return res.status(500).json({ error: 'Failed to delete prayer request' });
+    res.json({ message: 'Prayer request successfully deleted' });
+  });
+});
+
+// Get Admin System Stats
+app.get('/api/admin/stats', authenticateToken, requireAdmin, (req, res) => {
+  db.get("SELECT COUNT(*) as usersCount FROM users", [], (err, uRow) => {
+    if (err) return res.status(500).json({ error: 'Database statistics query failed' });
+    db.get("SELECT COUNT(*) as prayersCount FROM prayers", [], (err, pRow) => {
+      if (err) return res.status(500).json({ error: 'Database statistics query failed' });
+      db.get("SELECT COUNT(*) as feedCount FROM community_feed", [], (err, fRow) => {
+        if (err) return res.status(500).json({ error: 'Database statistics query failed' });
+        res.json({
+          totalUsers: uRow.usersCount,
+          totalPrayers: pRow.prayersCount,
+          totalFeedPosts: fRow.feedCount
+        });
+      });
+    });
+  });
 });
 
 app.listen(PORT, () => {
