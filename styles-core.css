@@ -243,33 +243,47 @@ h1, h2, h3, h4, h5, h6 {
 .brand-logo-group img.brand-icon {
   width: 48px !important;
   height: 48px !important;
-  background: #ffffff !important;
-  border-radius: 8px !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   object-fit: cover !important;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  padding: 1px;
+  mix-blend-mode: multiply;
 }
 
 .collapsed-brand-group img.brand-icon {
   width: 32px !important;
   height: 32px !important;
-  background: #ffffff !important;
-  border-radius: 6px !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   object-fit: cover !important;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-  padding: 1px;
+  mix-blend-mode: multiply;
 }
 
 .auth-brand img.brand-icon {
   width: 56px !important;
   height: 56px !important;
-  background: #ffffff !important;
-  border-radius: 12px !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   object-fit: cover !important;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  mix-blend-mode: multiply;
+}
+
+/* Dark mode compatibility for the logo */
+[data-theme="dark"] .brand-logo-group img.brand-icon {
+  mix-blend-mode: normal !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-radius: 8px !important;
+  padding: 2px;
+}
+[data-theme="dark"] .collapsed-brand-group img.brand-icon {
+  mix-blend-mode: normal !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-radius: 6px !important;
+  padding: 1px;
+}
+[data-theme="dark"] .auth-brand img.brand-icon {
+  mix-blend-mode: normal !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-radius: 12px !important;
   padding: 2px;
 }
 
