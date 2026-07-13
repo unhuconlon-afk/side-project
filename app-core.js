@@ -3347,6 +3347,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Interactive pray request button
+  window.AURA_APP = window.AURA_APP || {};
   window.AURA_APP.prayForRequest = function(prayerId) {
     const token = localStorage.getItem('aurabible_token');
     if (!token) {
