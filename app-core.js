@@ -579,7 +579,8 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           saved: state.saved,
           prayers: state.prayers,
-          settings: state.settings
+          settings: state.settings,
+          streak: state.profile ? state.profile.streak : 0
         })
       })
       .catch(err => console.error('Error syncing state:', err));

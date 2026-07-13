@@ -252,14 +252,6 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(400).json({ error: 'Invalid username or password' });
     }
 
-    // Increment streak on daily check in (only once per calendar day)
-    const today = new Date().toISOString().split('T')[0];
-    let newStreak = user.streak;
-    if (user.last_check_in_date !== today) {
-      newStreak = (user.streak || 0) + 1;
-      db.run("UPDATE users SET streak = ?, last_check_in_date = ? WHERE id = ?", [newStreak, today, user.id]);
-    }
-
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     res.json({
       token,
@@ -269,7 +261,7 @@ app.post('/api/auth/login', (req, res) => {
         name: user.name,
         email: user.email,
         avatar: user.avatar,
-        streak: newStreak,
+        streak: user.streak,
         joinedDate: user.joined_date
       }
     });
@@ -377,9 +369,14 @@ app.post('/api/user/profile', authenticateToken, (req, res) => {
 // Sync Full Client State (Saves lists, prayers, settings, etc.)
 app.post('/api/user/sync', authenticateToken, (req, res) => {
   const userId = req.user.id;
-  const { saved, prayers, settings } = req.body;
+  const { saved, prayers, settings, streak } = req.body;
 
   db.serialize(() => {
+    // Update streak if provided
+    if (streak !== undefined) {
+      db.run("UPDATE users SET streak = ? WHERE id = ?", [streak, userId]);
+    }
+
     // Delete old saved_items & prayers
     db.run("DELETE FROM saved_items WHERE user_id = ?", [userId]);
     db.run("DELETE FROM prayers WHERE user_id = ?", [userId]);
