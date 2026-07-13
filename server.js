@@ -48,13 +48,13 @@ function createTables() {
         last_check_in_date TEXT,
         is_admin INTEGER DEFAULT 0
       )
-    `, () => {
-      db.run("ALTER TABLE users ADD COLUMN last_check_in_date TEXT", (err) => {
-        // Ignore column already exists error
-      });
-      db.run("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0", (err) => {
-        // Ignore column already exists error
-      });
+    `);
+
+    db.run("ALTER TABLE users ADD COLUMN last_check_in_date TEXT", (err) => {
+      // Ignore column already exists error
+    });
+    db.run("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0", (err) => {
+      // Ignore column already exists error
     });
 
     // 2. Saved Items Table
