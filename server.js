@@ -16,6 +16,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+app.options('*', cors());
 
 // Serve static files from current directory
 app.use(express.static(__dirname));
