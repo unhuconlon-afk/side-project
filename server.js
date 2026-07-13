@@ -150,8 +150,8 @@ function seedMockData() {
 
   // Guarantee Admin user exists in all databases
   db.run(`
-    INSERT OR IGNORE INTO users (id, username, password_hash, name, email, avatar, streak, joined_date, is_admin)
-    VALUES (102, 'admin_holder', '${hash}', 'System Administrator', 'admin@gratia.com', 'https://api.dicebear.com/7.x/bottts/svg?seed=admin', 0, 'July 2026', 1)
+    INSERT OR IGNORE INTO users (username, password_hash, name, email, avatar, streak, joined_date, is_admin)
+    VALUES ('admin_holder', '${hash}', 'System Administrator', 'admin@gratia.com', 'https://api.dicebear.com/7.x/bottts/svg?seed=admin', 0, 'July 2026', 1)
   `);
 
   db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
