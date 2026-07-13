@@ -1818,16 +1818,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Active Plan progress
     const activePlanCard = document.getElementById('home-active-plan-card');
-    if (state.plansProgress.active && state.plansProgress.active.planId) {
-      const ap = getAllPlans().find(p => p.id === state.plansProgress.active.planId);
-      document.getElementById('home-active-plan-title').textContent = translatePlanField(ap.title);
-      const curDay = state.plansProgress.active.currentDay;
-      const total = ap.duration;
-      document.getElementById('home-active-plan-days').textContent = isVi ? `Ngày ${curDay} trên ${total}` : `Day ${curDay} of ${total}`;
-      document.getElementById('home-active-plan-progress').style.width = `${((curDay - 1) / total) * 100}%`;
-      activePlanCard.style.display = 'flex';
-    } else {
-      activePlanCard.style.display = 'none';
+    if (activePlanCard) {
+      if (state.plansProgress.active && state.plansProgress.active.planId) {
+        const ap = getAllPlans().find(p => p.id === state.plansProgress.active.planId);
+        if (ap) {
+          const titleEl = document.getElementById('home-active-plan-title');
+          const daysEl = document.getElementById('home-active-plan-days');
+          const progressEl = document.getElementById('home-active-plan-progress');
+          if (titleEl) titleEl.textContent = translatePlanField(ap.title);
+          const curDay = state.plansProgress.active.currentDay;
+          const total = ap.duration || 1;
+          if (daysEl) daysEl.textContent = isVi ? `Ngày ${curDay} trên ${total}` : `Day ${curDay} of ${total}`;
+          if (progressEl) progressEl.style.width = `${((curDay - 1) / total) * 100}%`;
+          activePlanCard.style.display = 'flex';
+        } else {
+          activePlanCard.style.display = 'none';
+        }
+      } else {
+        activePlanCard.style.display = 'none';
+      }
     }
 
     // Render Streak Calendar Widget
@@ -2647,8 +2656,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 10. READING PLANS WORKFLOW ---
   function renderPlansView() {
     const list = document.getElementById('plans-list-container');
+    if (!list) return;
     list.innerHTML = '';
-    const activeCategory = document.querySelector('.plan-category-tags .active').getAttribute('data-category');
+    const activeEl = document.querySelector('.plan-category-tags .active');
+    const activeCategory = activeEl ? activeEl.getAttribute('data-category') : 'all';
     
     const lang = state.settings.systemLanguage || 'en';
     const isVi = (lang === 'vi');
