@@ -3532,6 +3532,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       saveState();
+      publishCommunityFeedPost(
+        isVi ? `đã ghi chép bài giảng: "${titleVal}"` : `took notes on a sermon: "${titleVal}"`,
+        passageVal ? `${isVi ? 'Phần Kinh Thánh' : 'Passage'}: ${passageVal}` : ''
+      );
       renderSermonsView();
 
       // Clear input fields
@@ -4238,22 +4242,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.ui.highlightColor = color === 'clear' ? null : color;
       saveState();
       renderVotd();
-      if (color !== 'clear') {
-        const list = window.BIBLE_DATA.votdList;
-        const index = state.votdIndex !== undefined ? state.votdIndex : (new Date().getDate() % list.length);
-        const item = list[index];
-        if (item) {
-          const trans = state.ui.selectedVersion || state.readerState.translation || 'WEB';
-          let text = "";
-          if (window.BIBLE_DATA.staticScriptures[trans] && window.BIBLE_DATA.staticScriptures[trans][item.bookId] && window.BIBLE_DATA.staticScriptures[trans][item.bookId][item.chapter]) {
-            const verses = window.BIBLE_DATA.staticScriptures[trans][item.bookId][item.chapter];
-            const verseObj = verses.find(v => v.num === item.verseNum);
-            if (verseObj) text = verseObj.text;
-          }
-          if (!text) text = item.text[trans] || item.text['WEB'];
-          publishCommunityFeedPost(`đã tô màu ${item.bookId} ${item.chapter}:${item.verseNum} bằng bản dịch ${trans}`, `“${text}”`);
-        }
-      }
+
       if (votdHighlightPalette) votdHighlightPalette.style.display = 'none';
       showToast(color === 'clear' ? 'Highlight removed.' : `${color.charAt(0).toUpperCase() + color.slice(1)} highlight applied.`);
     });
@@ -4321,7 +4310,6 @@ document.addEventListener('DOMContentLoaded', () => {
           time: 'Just now'
         });
         saveState();
-        publishCommunityFeedPost(`đã viết ghi chú cho ${item.bookId} ${item.chapter}:${item.verseNum}`, noteText);
         showToast('Study note saved successfully!');
         noteInput.value = '';
         votdNotePopover.style.display = 'none';
