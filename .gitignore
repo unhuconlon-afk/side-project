@@ -4,9 +4,9 @@ database.db
 /data/*.db-shm
 /data/*.db-wal
 /docs/raw/
+/docs/data/
 .gemini/
 .agents/
 .cursor/
 *.log
 *.db-journal
-

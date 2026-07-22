@@ -27,8 +27,8 @@ app.use(express.json());
 app.options('*', cors());
 
 
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve static files from docs/ directory (also used by GitHub Pages)
+app.use(express.static(path.join(__dirname, '../docs')));
 
 // SSE & Logging Setup
 let adminConnections = [];
