@@ -3557,6 +3557,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Global Host Account Profile Modal
   window.AURA_APP = window.AURA_APP || {};
   window.AURA_APP.openHostProfile = function(userId, hostName) {
+    const isAdmin = !!(state && state.profile && state.profile.isAdmin);
+    if (!isAdmin) {
+      return;
+    }
+
     const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
     const token = localStorage.getItem('aurabible_token');
 
@@ -6623,15 +6628,8 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       }
 
-      card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          ${badge}
-          <span style="font-size:11px; color:var(--text-muted); font-weight:700; white-space:nowrap; flex-shrink:0; margin-left:8px; letter-spacing:0.05em;">${m.duration} ${isVi ? 'PHÚT' : 'MINS'}</span>
-        </div>
-        <h3 style="font-size:16px; font-weight:700; line-height:1.4; color:var(--text-primary); margin-bottom:8px; height:44px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis;">${m.title}</h3>
-        <p style="font-size:12px; color:var(--text-secondary); margin-bottom:20px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; min-height:54px;">${m.desc}</p>
-        
-        <div class="meeting-host-profile-trigger" data-userid="${m.userId || ''}" data-host="${m.host || ''}" style="display:flex; align-items:center; gap:10px; margin-bottom:20px; border-top:1px dashed var(--border-color); padding-top:14px; margin-top:auto; cursor:pointer; padding:4px 6px; border-radius:10px; transition:background-color 0.2s ease;" onmouseover="this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.backgroundColor='transparent'" title="${isVi ? 'Nhấp để xem trạng thái tài khoản chủ trì' : 'Click to view host account status'}">
+      const hostHtml = isAdmin ? `
+        <div class="meeting-host-profile-trigger" data-userid="${m.userId || ''}" data-host="${m.host || ''}" onclick="if(window.AURA_APP && window.AURA_APP.openHostProfile) window.AURA_APP.openHostProfile('${m.userId || ''}', '${(m.host || '').replace(/'/g, "\\'")}');" style="display:flex; align-items:center; gap:10px; margin-bottom:20px; border-top:1px dashed var(--border-color); padding-top:14px; margin-top:auto; cursor:pointer; padding:4px 6px; border-radius:10px; transition:background-color 0.2s ease;" onmouseover="this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.backgroundColor='transparent'" title="${isVi ? 'Xem trạng thái tài khoản chủ trì (Dành cho Quản trị viên)' : 'View host account status (Admin only)'}">
           <img src="${m.avatar}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid var(--accent-color); box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <div style="display:flex; flex-direction:column;">
             <span style="font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; line-height:1;">${isVi ? 'Chủ trì' : 'Host'}</span>
@@ -6640,6 +6638,25 @@ document.addEventListener('DOMContentLoaded', () => {
             </span>
           </div>
         </div>
+      ` : `
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px; border-top:1px dashed var(--border-color); padding-top:14px; margin-top:auto;">
+          <img src="${m.avatar}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid var(--bg-primary); box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+          <div style="display:flex; flex-direction:column;">
+            <span style="font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; line-height:1;">${isVi ? 'Chủ trì' : 'Host'}</span>
+            <span style="font-size:12px; color:var(--text-primary); font-weight:600; margin-top:2px;">${m.host}</span>
+          </div>
+        </div>
+      `;
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          ${badge}
+          <span style="font-size:11px; color:var(--text-muted); font-weight:700; white-space:nowrap; flex-shrink:0; margin-left:8px; letter-spacing:0.05em;">${m.duration} ${isVi ? 'PHÚT' : 'MINS'}</span>
+        </div>
+        <h3 style="font-size:16px; font-weight:700; line-height:1.4; color:var(--text-primary); margin-bottom:8px; height:44px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis;">${m.title}</h3>
+        <p style="font-size:12px; color:var(--text-secondary); margin-bottom:20px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; min-height:54px;">${m.desc}</p>
+        
+        ${hostHtml}
 
         ${actionButton}
       `;
