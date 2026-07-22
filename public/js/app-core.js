@@ -6366,22 +6366,37 @@ document.addEventListener('DOMContentLoaded', () => {
       const secondaryHover = `this.style.backgroundColor='var(--bg-primary)'; this.style.borderColor='var(--accent-color)'`;
       const secondaryOut = `this.style.backgroundColor='var(--bg-tertiary)'; this.style.borderColor='var(--border-color)'`;
 
-      const isMyMeeting = (m.host === state.profile.name);
-      const actionButton = isMyMeeting
-        ? `<div style="display:flex; gap:10px; margin-top:auto; width:100%;">
+      const isHost = !!(state.profile && (m.host === state.profile.name || m.host === state.profile.username));
+      const isAdmin = !!(state.profile && state.profile.isAdmin);
+      const canEdit = isHost || isAdmin;
+      const canDelete = isHost || isAdmin;
+
+      let actionButton = '';
+      if (canEdit || canDelete) {
+        actionButton = `
+          <div style="display:flex; gap:10px; margin-top:auto; width:100%;">
             <a href="${m.link}" target="_blank" class="btn" style="flex-grow:1; ${m.isLive ? primaryBtnStyle : secondaryBtnStyle}" ${m.isLive ? `onmouseover="${primaryHover}" onmouseout="${primaryOut}"` : `onmouseover="${secondaryHover}" onmouseout="${secondaryOut}"`}>
               ${m.isLive ? (isVi ? 'Tham gia' : 'Join') : (isVi ? 'Mở phòng' : 'Open Link')}
             </a>
-            <button class="btn btn-secondary btn-icon-only btn-adjust-meeting" data-id="${m.id}" style="padding:0 12px; display:inline-flex; align-items:center; justify-content:center; background-color:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:12px; cursor:pointer; color:var(--text-primary);" title="${isVi ? 'Chỉnh sửa' : 'Adjust'}">
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            </button>
-            <button class="btn btn-secondary btn-icon-only btn-delete-meeting" data-id="${m.id}" style="padding:0 12px; display:inline-flex; align-items:center; justify-content:center; background-color:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:12px; cursor:pointer; color:#D9534F;" title="${isVi ? 'Xóa' : 'Delete'}">
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-           </div>`
-        : `<a href="${m.link}" target="_blank" class="btn" style="${m.isLive ? primaryBtnStyle : secondaryBtnStyle}" ${m.isLive ? `onmouseover="${primaryHover}" onmouseout="${primaryOut}"` : `onmouseover="${secondaryHover}" onmouseout="${secondaryOut}"`}>
+            ${canEdit ? `
+              <button class="btn btn-secondary btn-icon-only btn-adjust-meeting" data-id="${m.id}" style="padding:0 12px; display:inline-flex; align-items:center; justify-content:center; background-color:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:12px; cursor:pointer; color:var(--text-primary);" title="${isVi ? 'Chỉnh sửa' : 'Adjust'}">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+            ` : ''}
+            ${canDelete ? `
+              <button class="btn btn-secondary btn-icon-only btn-delete-meeting" data-id="${m.id}" style="padding:0 12px; display:inline-flex; align-items:center; justify-content:center; background-color:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:12px; cursor:pointer; color:#D9534F;" title="${isVi ? 'Xóa phòng' : 'Delete Room'}">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            ` : ''}
+          </div>
+        `;
+      } else {
+        actionButton = `
+          <a href="${m.link}" target="_blank" class="btn" style="${m.isLive ? primaryBtnStyle : secondaryBtnStyle}" ${m.isLive ? `onmouseover="${primaryHover}" onmouseout="${primaryOut}"` : `onmouseover="${secondaryHover}" onmouseout="${secondaryOut}"`}>
             ${m.isLive ? (isVi ? 'Tham gia trên Zoom' : 'Join Meeting on Zoom') : (isVi ? 'Mở liên kết phòng' : 'Open Fellowship link')}
-          </a>`;
+          </a>
+        `;
+      }
 
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -6410,14 +6425,19 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const id = btn.getAttribute('data-id');
         showConfirmModal(
-          isVi ? 'Xóa phòng thông công' : 'Delete Fellowship Room',
-          isVi ? 'Bạn có chắc chắn muốn xóa phòng thông công này không?' : 'Are you sure you want to delete this fellowship room?',
+          isVi ? 'Xác nhận xóa phòng' : 'Confirm Delete Room',
+          isVi ? 'Bạn có chắc chắn muốn xóa phòng họp này không?' : 'Are you sure you want to delete this meeting room?',
           () => {
-            state.meetings = state.meetings.filter(m => m.id !== id);
+            state.meetings = (state.meetings || []).filter(m => m.id !== id);
+            if (state.feed) {
+              state.feed = state.feed.filter(f => f.meetingId !== id);
+            }
             saveState();
             renderMeetingsView();
-            showToast(isVi ? 'Đã xóa phòng thông công.' : 'Fellowship room deleted.');
-          }
+            showToast(isVi ? 'Đã xóa phòng họp thành công.' : 'Meeting room deleted successfully.');
+          },
+          isVi ? 'Xóa' : 'Delete',
+          isVi ? 'Hủy' : 'Cancel'
         );
       });
     });
