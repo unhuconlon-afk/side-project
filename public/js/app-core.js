@@ -3564,9 +3564,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
     const token = localStorage.getItem('aurabible_token');
+    const queryTarget = userId || hostName;
 
-    if (userId && token) {
-      fetch(`${API_BASE}/api/users/${userId}/profile`, {
+    if (queryTarget && token) {
+      fetch(`${API_BASE}/api/users/${encodeURIComponent(queryTarget)}/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => {
@@ -3574,26 +3575,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return res.json();
       })
       .then(data => {
+        if (data.error) throw new Error(data.error);
         showHostProfileModal(data);
       })
       .catch(err => {
-        fallbackHostModal(hostName);
-      });
-    } else {
-      fallbackHostModal(hostName);
-    }
-
-    function fallbackHostModal(name) {
-      showHostProfileModal({
-        status: 'public',
-        id: userId || 0,
-        name: name || 'Host User',
-        username: (name || 'host').toLowerCase().replace(/\s+/g, '_'),
-        avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name || 'Host')}`,
-        joinedDate: 'May 2026',
-        streak: 31,
-        activePlan: 'Walk in Divine Peace',
-        stats: { highlights: 12, notes: 5, prayers: 8 }
+        console.error('Failed to fetch host profile:', err);
+        showToast(isVi ? 'Không thể tải thông tin người dùng' : 'Failed to load user profile');
       });
     }
   };

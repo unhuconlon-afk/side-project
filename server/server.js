@@ -1034,61 +1034,51 @@ app.get('/api/users/search', authenticateToken, (req, res) => {
   });
 });
 
-// Fetch user profile summary with privacy check
+// Fetch user profile summary with flexible ID/username/name lookup
 app.get('/api/users/:id/profile', authenticateToken, (req, res) => {
-  const friendId = parseInt(req.params.id);
-  const userId = req.user.id;
+  const param = req.params.id;
+  const requesterId = req.user.id;
+  const isAdmin = (req.user.is_admin === 1 || req.user.isAdmin === true);
 
-  // Check if they are friends first (privacy validation)
-  db.get("SELECT 1 FROM friends WHERE user_id = ? AND friend_id = ?", [userId, friendId], (err, isFriend) => {
+  const isNumeric = /^\d+$/.test(param);
+  const sqlUser = isNumeric
+    ? `SELECT u.id, u.name, u.username, u.avatar, u.joined_date, u.streak, u.active_plan, COALESCE(s.show_profile, 1) as show_profile FROM users u LEFT JOIN user_settings s ON u.id = s.user_id WHERE u.id = ?`
+    : `SELECT u.id, u.name, u.username, u.avatar, u.joined_date, u.streak, u.active_plan, COALESCE(s.show_profile, 1) as show_profile FROM users u LEFT JOIN user_settings s ON u.id = s.user_id WHERE LOWER(u.username) = LOWER(?) OR LOWER(u.name) = LOWER(?)`;
+
+  const userParams = isNumeric ? [parseInt(param)] : [param, param];
+
+  db.get(sqlUser, userParams, (err, user) => {
     if (err) return res.status(500).json({ error: 'Database error' });
-    
-    // Allow viewing self or friend
-    if (!isFriend && friendId !== userId) {
-      return res.status(403).json({ error: 'You can only view profiles of your friends' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Allow viewing if Admin, self, public profile, or friends
+    if (user.show_profile === 0 && !isAdmin && user.id !== requesterId) {
+      return res.json({ status: 'private', name: user.name, avatar: user.avatar });
     }
 
-    // Fetch user details and their show_profile settings
-    const sql = `
-      SELECT u.id, u.name, u.username, u.avatar, u.joined_date, u.streak, u.active_plan,
-        COALESCE(s.show_profile, 1) as show_profile
-      FROM users u
-      LEFT JOIN user_settings s ON u.id = s.user_id
-      WHERE u.id = ?
-    `;
-
-    db.get(sql, [friendId], (err, user) => {
+    const targetId = user.id;
+    db.get(`
+      SELECT 
+        (SELECT COUNT(*) FROM saved_items WHERE user_id = ? AND type = 'highlight') as highlights_count,
+        (SELECT COUNT(*) FROM saved_items WHERE user_id = ? AND type = 'note') as notes_count,
+        (SELECT COUNT(*) FROM prayers WHERE user_id = ?) as prayers_count
+    `, [targetId, targetId, targetId], (err, counts) => {
       if (err) return res.status(500).json({ error: 'Database error' });
-      if (!user) return res.status(404).json({ error: 'User not found' });
 
-      if (user.show_profile === 0 && friendId !== userId) {
-        return res.json({ status: 'private', name: user.name, avatar: user.avatar });
-      }
-
-      // If allowed, fetch counts of highlights, notes, and prayers
-      db.get(`
-        SELECT 
-          (SELECT COUNT(*) FROM saved_items WHERE user_id = ? AND type = 'highlight') as highlights_count,
-          (SELECT COUNT(*) FROM saved_items WHERE user_id = ? AND type = 'note') as notes_count,
-          (SELECT COUNT(*) FROM prayers WHERE user_id = ?) as prayers_count
-      `, [friendId, friendId, friendId], (err, counts) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
-
-        res.json({
-          status: 'public',
-          id: user.id,
-          name: user.name,
-          username: user.username,
-          avatar: user.avatar,
-          joinedDate: user.joined_date || 'July 2026',
-          streak: user.streak || 0,
-          activePlan: user.active_plan || 'None',
-          stats: {
-            highlights: counts.highlights_count || 0,
-            notes: counts.notes_count || 0,
-            prayers: counts.prayers_count || 0
-          }
-        });
+      res.json({
+        status: 'public',
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar,
+        joinedDate: user.joined_date || 'May 2026',
+        streak: user.streak || 0,
+        activePlan: user.active_plan || 'Walk in Divine Peace',
+        stats: {
+          highlights: counts ? (counts.highlights_count || 0) : 0,
+          notes: counts ? (counts.notes_count || 0) : 0,
+          prayers: counts ? (counts.prayers_count || 0) : 0
+        }
       });
     });
   });
