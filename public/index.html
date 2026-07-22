@@ -771,25 +771,50 @@
         </div>
       </section>
 
-      <!-- AVATAR CHOOSER MODAL -->
+      <!-- AVATAR CHOOSER MODAL (Social Media Style) -->
       <div id="avatar-chooser-modal" class="modal" style="display:none; position:fixed; inset:0; background:var(--modal-backdrop); backdrop-filter:blur(4px); z-index:99999; align-items:center; justify-content:center;">
-        <div class="modal-content" style="background:var(--bg-secondary); border:1px solid var(--border-color); padding:24px; border-radius:16px; width:90%; max-width:420px; box-shadow:var(--card-shadow); display:flex; flex-direction:column; gap:16px; position:relative;">
-          <button id="avatar-chooser-close" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-muted); cursor:pointer;">&times;</button>
+        <div class="modal-content" style="background:var(--bg-secondary); border:1px solid var(--border-color); padding:28px; border-radius:20px; width:90%; max-width:440px; box-shadow:var(--card-shadow); display:flex; flex-direction:column; gap:20px; position:relative;">
+          <button id="avatar-chooser-close" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:22px; color:var(--text-muted); cursor:pointer;">&times;</button>
           
-          <h3 style="margin:0; font-size:18px; font-weight:700; color:var(--text-primary);">Choose Your Avatar</h3>
-          <p style="margin:0; font-size:12px; color:var(--text-muted);">Select from spiritual avatar presets or paste an avatar URL</p>
-
-          <div id="avatar-presets-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin:8px 0;"></div>
-
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Custom Image URL</label>
-            <input type="text" id="avatar-custom-url-input" placeholder="https://example.com/my-avatar.png" style="padding:10px 12px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-primary); color:var(--text-primary); font-size:13px;">
+          <div style="text-align:center;">
+            <h3 style="margin:0 0 4px 0; font-size:20px; font-weight:800; color:var(--text-primary);">Change Profile Photo</h3>
+            <p style="margin:0; font-size:12px; color:var(--text-muted);">Upload a photo from your device or select an avatar preset</p>
           </div>
 
-          <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
-            <button id="avatar-chooser-cancel" class="btn btn-secondary" style="padding:8px 16px; font-size:12px;">Cancel</button>
-            <button id="avatar-chooser-save" class="btn btn-primary" style="padding:8px 16px; font-size:12px;">Save Avatar</button>
+          <!-- Live Preview Circle -->
+          <div style="display:flex; justify-content:center; align-items:center; margin:4px 0;">
+            <div style="position:relative;">
+              <img id="avatar-preview-img" src="" style="width:96px; height:96px; border-radius:50%; object-fit:cover; border:3px solid var(--accent-color); box-shadow:0 4px 16px rgba(0,0,0,0.15);">
+            </div>
           </div>
+
+          <!-- File Upload Button & Hidden Input -->
+          <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
+            <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
+            <button id="avatar-upload-trigger-btn" class="btn btn-primary" style="width:100%; justify-content:center; padding:10px; font-size:13px; font-weight:700; border-radius:10px; gap:8px; display:inline-flex; align-items:center;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Upload Photo from Computer
+            </button>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px; margin:4px 0;">
+            <div style="flex:1; height:1px; background:var(--border-color);"></div>
+            <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Or Pick an Avatar Preset</span>
+            <div style="flex:1; height:1px; background:var(--border-color);"></div>
+          </div>
+
+          <!-- Avatar Presets Grid -->
+          <div id="avatar-presets-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;"></div>
+
+          <!-- Modal Actions -->
+          <div style="display:flex; gap:10px; justify-content:space-between; align-items:center; margin-top:8px; border-top:1px dashed var(--border-color); padding-top:16px;">
+            <button id="avatar-chooser-reset" class="btn btn-secondary" style="padding:8px 12px; font-size:12px; color:var(--text-muted);">Reset Photo</button>
+            <div style="display:flex; gap:8px;">
+              <button id="avatar-chooser-cancel" class="btn btn-secondary" style="padding:8px 16px; font-size:12px;">Cancel</button>
+              <button id="avatar-chooser-save" class="btn btn-primary" style="padding:8px 18px; font-size:12px; font-weight:700;">Save Changes</button>
+            </div>
+          </div>
+
         </div>
       </div>
 

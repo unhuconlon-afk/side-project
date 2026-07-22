@@ -6125,18 +6125,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Global Event Delegation for Profile View & Avatar Chooser Modal
+  // Global Event Delegation for Profile View & Avatar Chooser Modal (Social Media Style)
   let selectedAvatarUrl = '';
 
   function openAvatarChooserModal() {
     const avatarModal = document.getElementById('avatar-chooser-modal');
-    const customUrlInput = document.getElementById('avatar-custom-url-input');
     if (!avatarModal) return;
 
-    selectedAvatarUrl = (state.profile && state.profile.avatar) || '';
-    if (customUrlInput) customUrlInput.value = '';
+    selectedAvatarUrl = (state.profile && state.profile.avatar) || 'https://api.dicebear.com/7.x/adventurer/svg?seed=Marcus';
+    updateAvatarPreview(selectedAvatarUrl);
     renderAvatarPresets();
     avatarModal.style.display = 'flex';
+  }
+
+  function updateAvatarPreview(url) {
+    const previewImg = document.getElementById('avatar-preview-img');
+    if (previewImg) previewImg.src = url || 'https://api.dicebear.com/7.x/adventurer/svg?seed=Marcus';
   }
 
   function closeAvatarChooserModal() {
@@ -6161,32 +6165,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     avatarPresetsGrid.innerHTML = '';
     avatarPresets.forEach(url => {
+      const isSelected = selectedAvatarUrl === url;
+      const wrap = document.createElement('div');
+      wrap.style.cssText = `position:relative; width:56px; height:56px; margin:0 auto; cursor:pointer;`;
+      
       const img = document.createElement('img');
       img.src = url;
-      img.style.cssText = `width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid ${selectedAvatarUrl === url ? 'var(--accent-color)' : 'var(--border-color)'}; cursor:pointer; transition:all 0.2s ease;`;
-      img.addEventListener('click', (e) => {
+      img.style.cssText = `width:56px; height:56px; border-radius:50%; object-fit:cover; border:2.5px solid ${isSelected ? 'var(--accent-color)' : 'var(--border-color)'}; box-shadow:${isSelected ? '0 0 12px rgba(92,110,88,0.5)' : 'none'}; transition:all 0.2s ease;`;
+      
+      if (isSelected) {
+        const badge = document.createElement('div');
+        badge.style.cssText = `position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-radius:50%; background:var(--accent-color); color:#fff; display:flex; align-items:center; justify-content:center; border:1.5px solid var(--bg-secondary);`;
+        badge.innerHTML = `<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        wrap.appendChild(badge);
+      }
+
+      wrap.appendChild(img);
+      wrap.addEventListener('click', (e) => {
         e.stopPropagation();
         selectedAvatarUrl = url;
-        const customUrlInput = document.getElementById('avatar-custom-url-input');
-        if (customUrlInput) customUrlInput.value = '';
+        updateAvatarPreview(selectedAvatarUrl);
         renderAvatarPresets();
       });
-      avatarPresetsGrid.appendChild(img);
+      avatarPresetsGrid.appendChild(wrap);
     });
   }
 
   function saveSelectedAvatar() {
-    const customUrlInput = document.getElementById('avatar-custom-url-input');
-    const customUrl = customUrlInput ? customUrlInput.value.trim() : '';
-    const finalUrl = customUrl || selectedAvatarUrl;
-
-    if (finalUrl) {
-      state.profile.avatar = finalUrl;
+    if (selectedAvatarUrl) {
+      state.profile.avatar = selectedAvatarUrl;
       saveState();
 
       // Update sidebar avatar as well
       const sidebarAvatar = document.getElementById('sidebar-user-avatar');
-      if (sidebarAvatar) sidebarAvatar.src = finalUrl;
+      if (sidebarAvatar) sidebarAvatar.src = selectedAvatarUrl;
 
       renderProfileView();
       closeAvatarChooserModal();
@@ -6194,7 +6206,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'avatar-file-input') {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        if (!file.type.startsWith('image/')) {
+          showToast(state.settings.systemLanguage === 'vi' ? 'Vui lòng chọn tệp hình ảnh' : 'Please select an image file');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          selectedAvatarUrl = evt.target.result;
+          updateAvatarPreview(selectedAvatarUrl);
+          renderAvatarPresets();
+          showToast(state.settings.systemLanguage === 'vi' ? 'Đã chọn ảnh! Nhấp Save Changes để lưu' : 'Photo selected! Click Save Changes to apply');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  });
+
   document.addEventListener('click', (e) => {
+    // Avatar Upload Trigger
+    if (e.target.closest('#avatar-upload-trigger-btn')) {
+      const fileInput = document.getElementById('avatar-file-input');
+      if (fileInput) fileInput.click();
+      return;
+    }
+
+    // Reset Photo Trigger
+    if (e.target.closest('#avatar-chooser-reset')) {
+      selectedAvatarUrl = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(state.profile.name || 'User')}`;
+      updateAvatarPreview(selectedAvatarUrl);
+      renderAvatarPresets();
+      return;
+    }
+
     // Avatar Wrapper Click
     if (e.target.closest('#profile-avatar-wrapper')) {
       openAvatarChooserModal();
