@@ -6125,86 +6125,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Bind event listeners for Profile buttons
-  document.addEventListener('DOMContentLoaded', () => {
-    // Copy Handle
-    const copyHandleBtn = document.getElementById('profile-copy-handle-btn');
-    if (copyHandleBtn) {
-      copyHandleBtn.addEventListener('click', () => {
-        const usernameEl = document.getElementById('profile-username');
-        const handleText = usernameEl ? usernameEl.textContent : `@${state.profile.name}`;
-        navigator.clipboard.writeText(handleText).then(() => {
-          showToast(state.settings.systemLanguage === 'vi' ? `Đã sao chép ${handleText}` : `Copied ${handleText}`);
-        }).catch(() => {
-          showToast(handleText);
-        });
-      });
-    }
+  // Global Event Delegation for Profile View & Avatar Chooser Modal
+  let selectedAvatarUrl = '';
 
-    // Shortcuts
-    const shortcutPrayers = document.getElementById('shortcut-prayers-btn');
-    if (shortcutPrayers) shortcutPrayers.addEventListener('click', () => navigateToView('prayer'));
-    const shortcutSaved = document.getElementById('shortcut-saved-btn');
-    if (shortcutSaved) shortcutSaved.addEventListener('click', () => navigateToView('saved'));
-    const shortcutNotes = document.getElementById('shortcut-notes-btn');
-    if (shortcutNotes) shortcutNotes.addEventListener('click', () => navigateToView('saved'));
-
-    // Plan Jump
-    const planJumpBtn = document.getElementById('profile-plan-jump-btn');
-    if (planJumpBtn) planJumpBtn.addEventListener('click', () => navigateToView('plans'));
-    const highlightJumpBtn = document.getElementById('profile-highlight-jump-btn');
-    if (highlightJumpBtn) highlightJumpBtn.addEventListener('click', () => navigateToView('bible'));
-    const noteJumpBtn = document.getElementById('profile-note-jump-btn');
-    if (noteJumpBtn) noteJumpBtn.addEventListener('click', () => navigateToView('saved'));
-
-    // Admin Portal Actions
-    const adminConsoleBtn = document.getElementById('profile-admin-console-btn');
-    if (adminConsoleBtn) adminConsoleBtn.addEventListener('click', () => navigateToView('admin'));
-    const adminMeetingsBtn = document.getElementById('profile-admin-meetings-btn');
-    if (adminMeetingsBtn) adminMeetingsBtn.addEventListener('click', () => navigateToView('meetings'));
-
-    // Export Journal
-    const exportJournalBtn = document.getElementById('profile-export-journal-btn');
-    if (exportJournalBtn) {
-      exportJournalBtn.addEventListener('click', () => {
-        const isVi = state.settings.systemLanguage === 'vi';
-        let content = `=== GRATIA DEVOTIONAL JOURNAL EXPORT ===\n`;
-        content += `User: ${state.profile.name} (@${(state.profile.name||'user').toLowerCase().replace(/\s+/g,'_')})\n`;
-        content += `Date: ${new Date().toLocaleDateString()}\n\n`;
-
-        content += `--- SAVED HIGHLIGHTS (${state.saved.highlights ? state.saved.highlights.length : 0}) ---\n`;
-        (state.saved.highlights || []).forEach((h, i) => {
-          content += `${i+1}. [${h.bookId} ${h.chapter}:${h.verseNum}] "${h.text}"\n`;
-        });
-
-        content += `\n--- SAVED STUDY NOTES (${state.saved.notes ? state.saved.notes.length : 0}) ---\n`;
-        (state.saved.notes || []).forEach((n, i) => {
-          content += `${i+1}. [${n.bookId} ${n.chapter}:${n.verseNum}] Note: "${n.noteText}" | Verse: "${n.text}"\n`;
-        });
-
-        content += `\n--- PRAYERS LOG (${state.prayers ? state.prayers.length : 0}) ---\n`;
-        (state.prayers || []).forEach((p, i) => {
-          content += `${i+1}. [${p.category || 'General'}] ${p.title} - ${p.content || ''}\n`;
-        });
-
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `Gratia_Spiritual_Journal_${(state.profile.name||'User').replace(/\s+/g,'_')}.txt`;
-        a.click();
-        showToast(isVi ? 'Đã xuất Nhật Ký Tâm Linh thành công' : 'Spiritual Journal exported successfully');
-      });
-    }
-
-    // Avatar Chooser Modal
-    const avatarWrapper = document.getElementById('profile-avatar-wrapper');
+  function openAvatarChooserModal() {
     const avatarModal = document.getElementById('avatar-chooser-modal');
-    const avatarClose = document.getElementById('avatar-chooser-close');
-    const avatarCancel = document.getElementById('avatar-chooser-cancel');
-    const avatarSave = document.getElementById('avatar-chooser-save');
-    const avatarPresetsGrid = document.getElementById('avatar-presets-grid');
     const customUrlInput = document.getElementById('avatar-custom-url-input');
-    let selectedAvatar = (state.profile && state.profile.avatar) || '';
+    if (!avatarModal) return;
+
+    selectedAvatarUrl = (state.profile && state.profile.avatar) || '';
+    if (customUrlInput) customUrlInput.value = '';
+    renderAvatarPresets();
+    avatarModal.style.display = 'flex';
+  }
+
+  function closeAvatarChooserModal() {
+    const avatarModal = document.getElementById('avatar-chooser-modal');
+    if (avatarModal) avatarModal.style.display = 'none';
+  }
+
+  function renderAvatarPresets() {
+    const avatarPresetsGrid = document.getElementById('avatar-presets-grid');
+    if (!avatarPresetsGrid) return;
 
     const avatarPresets = [
       'https://api.dicebear.com/7.x/adventurer/svg?seed=Elijah',
@@ -6217,47 +6159,112 @@ document.addEventListener('DOMContentLoaded', () => {
       'https://api.dicebear.com/7.x/adventurer/svg?seed=Ruth'
     ];
 
-    if (avatarWrapper && avatarModal) {
-      avatarWrapper.addEventListener('click', () => {
-        selectedAvatar = state.profile.avatar;
+    avatarPresetsGrid.innerHTML = '';
+    avatarPresets.forEach(url => {
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = `width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid ${selectedAvatarUrl === url ? 'var(--accent-color)' : 'var(--border-color)'}; cursor:pointer; transition:all 0.2s ease;`;
+      img.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedAvatarUrl = url;
+        const customUrlInput = document.getElementById('avatar-custom-url-input');
         if (customUrlInput) customUrlInput.value = '';
-        renderPresets();
-        avatarModal.style.display = 'flex';
+        renderAvatarPresets();
       });
+      avatarPresetsGrid.appendChild(img);
+    });
+  }
 
-      function renderPresets() {
-        if (!avatarPresetsGrid) return;
-        avatarPresetsGrid.innerHTML = '';
-        avatarPresets.forEach(url => {
-          const img = document.createElement('img');
-          img.src = url;
-          img.style.cssText = `width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid ${selectedAvatar === url ? 'var(--accent-color)' : 'var(--border-color)'}; cursor:pointer; transition:all 0.2s ease;`;
-          img.addEventListener('click', () => {
-            selectedAvatar = url;
-            if (customUrlInput) customUrlInput.value = '';
-            renderPresets();
-          });
-          avatarPresetsGrid.appendChild(img);
-        });
+  function saveSelectedAvatar() {
+    const customUrlInput = document.getElementById('avatar-custom-url-input');
+    const customUrl = customUrlInput ? customUrlInput.value.trim() : '';
+    const finalUrl = customUrl || selectedAvatarUrl;
+
+    if (finalUrl) {
+      state.profile.avatar = finalUrl;
+      saveState();
+
+      // Update sidebar avatar as well
+      const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+      if (sidebarAvatar) sidebarAvatar.src = finalUrl;
+
+      renderProfileView();
+      closeAvatarChooserModal();
+      showToast(state.settings.systemLanguage === 'vi' ? 'Đã cập nhật ảnh đại diện' : 'Avatar updated successfully');
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    // Avatar Wrapper Click
+    if (e.target.closest('#profile-avatar-wrapper')) {
+      openAvatarChooserModal();
+      return;
+    }
+
+    // Copy Handle Click
+    if (e.target.closest('#profile-copy-handle-btn')) {
+      const usernameEl = document.getElementById('profile-username');
+      const handleText = usernameEl ? usernameEl.textContent : `@${state.profile.name}`;
+      navigator.clipboard.writeText(handleText).then(() => {
+        showToast(state.settings.systemLanguage === 'vi' ? `Đã sao chép ${handleText}` : `Copied ${handleText}`);
+      }).catch(() => {
+        showToast(handleText);
+      });
+      return;
+    }
+
+    // 3 Shortcut Buttons
+    if (e.target.closest('#shortcut-prayers-btn')) {
+      navigateTo('prayer');
+      return;
+    }
+    if (e.target.closest('#shortcut-saved-btn')) {
+      navigateTo('saved');
+      return;
+    }
+    if (e.target.closest('#shortcut-notes-btn')) {
+      navigateTo('saved');
+      return;
+    }
+
+    // Recent Activity & Spiritual Journey Action Buttons
+    if (e.target.closest('#profile-plan-jump-btn')) {
+      navigateTo('plans');
+      return;
+    }
+    if (e.target.closest('#profile-highlight-jump-btn')) {
+      if (state.saved.highlights && state.saved.highlights.length > 0) {
+        const lastH = state.saved.highlights[state.saved.highlights.length - 1];
+        state.selectedBook = lastH.bookId;
+        state.selectedChapter = lastH.chapter;
+        if (lastH.translation) state.settings.translation = lastH.translation;
       }
+      navigateTo('bible');
+      return;
+    }
+    if (e.target.closest('#profile-note-jump-btn')) {
+      navigateTo('saved');
+      return;
+    }
 
-      const closeModal = () => { avatarModal.style.display = 'none'; };
-      if (avatarClose) avatarClose.addEventListener('click', closeModal);
-      if (avatarCancel) avatarCancel.addEventListener('click', closeModal);
+    // Admin Command Portal Actions
+    if (e.target.closest('#profile-admin-console-btn')) {
+      navigateTo('admin');
+      return;
+    }
+    if (e.target.closest('#profile-admin-meetings-btn')) {
+      navigateTo('meetings');
+      return;
+    }
 
-      if (avatarSave) {
-        avatarSave.addEventListener('click', () => {
-          const customUrl = customUrlInput ? customUrlInput.value.trim() : '';
-          const finalUrl = customUrl || selectedAvatar;
-          if (finalUrl) {
-            state.profile.avatar = finalUrl;
-            saveState();
-            renderProfileView();
-            closeModal();
-            showToast(state.settings.systemLanguage === 'vi' ? 'Đã cập nhật ảnh đại diện' : 'Avatar updated');
-          }
-        });
-      }
+    // Avatar Chooser Modal Close / Cancel / Save
+    if (e.target.closest('#avatar-chooser-close') || e.target.closest('#avatar-chooser-cancel')) {
+      closeAvatarChooserModal();
+      return;
+    }
+    if (e.target.closest('#avatar-chooser-save')) {
+      saveSelectedAvatar();
+      return;
     }
   });
 
