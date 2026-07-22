@@ -3554,6 +3554,170 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Global Host Account Profile Modal
+  window.AURA_APP = window.AURA_APP || {};
+  window.AURA_APP.openHostProfile = function(userId, hostName) {
+    const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
+    const token = localStorage.getItem('aurabible_token');
+
+    if (userId && token) {
+      fetch(`${API_BASE}/api/users/${userId}/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load profile');
+        return res.json();
+      })
+      .then(data => {
+        showHostProfileModal(data);
+      })
+      .catch(err => {
+        fallbackHostModal(hostName);
+      });
+    } else {
+      fallbackHostModal(hostName);
+    }
+
+    function fallbackHostModal(name) {
+      showHostProfileModal({
+        status: 'public',
+        id: userId || 0,
+        name: name || 'Host User',
+        username: (name || 'host').toLowerCase().replace(/\s+/g, '_'),
+        avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name || 'Host')}`,
+        joinedDate: 'May 2026',
+        streak: 31,
+        activePlan: 'Walk in Divine Peace',
+        stats: { highlights: 12, notes: 5, prayers: 8 }
+      });
+    }
+  };
+
+  function showHostProfileModal(data) {
+    const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100vw';
+    modal.style.height = '100vh';
+    modal.style.background = 'var(--modal-backdrop)';
+    modal.style.zIndex = '99999';
+    modal.style.backdropFilter = 'blur(4px)';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.position = 'absolute';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    modal.appendChild(overlay);
+
+    const content = document.createElement('div');
+    content.className = 'modal-content';
+    content.style.position = 'relative';
+    content.style.background = 'var(--bg-secondary)';
+    content.style.padding = '24px';
+    content.style.borderRadius = '16px';
+    content.style.border = '1px solid var(--border-color)';
+    content.style.maxWidth = '400px';
+    content.style.width = '90%';
+    content.style.boxShadow = 'var(--card-shadow)';
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.alignItems = 'center';
+    content.style.gap = '16px';
+    content.style.animation = 'adminFadeIn 0.25s ease';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.position = 'absolute';
+    closeBtn.style.top = '12px';
+    closeBtn.style.right = '16px';
+    closeBtn.style.background = 'none';
+    closeBtn.style.border = 'none';
+    closeBtn.style.fontSize = '24px';
+    closeBtn.style.color = 'var(--text-muted)';
+    closeBtn.style.cursor = 'pointer';
+    
+    const closeModal = () => {
+      if (document.body.contains(modal)) {
+        document.body.removeChild(modal);
+      }
+    };
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', closeModal);
+    content.appendChild(closeBtn);
+
+    const stats = data.stats || { highlights: 0, notes: 0, prayers: 0 };
+    const joined = data.joinedDate || 'May 2026';
+    const streakVal = data.streak || 1;
+    const planName = data.activePlan || 'Walk in Divine Peace';
+
+    content.innerHTML += `
+      <div style="text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <img src="${data.avatar}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-color); box-shadow: var(--card-shadow);">
+        <h3 style="font-size: 18px; margin: 0; color: var(--text-primary); font-weight: 700;">${data.name}</h3>
+        <div style="font-size: 12px; color: var(--text-muted);">@${data.username}</div>
+        <div style="font-size: 11px; background: var(--bg-tertiary); padding: 4px 10px; border-radius: 50px; color: var(--text-muted); margin-top: 4px; border: 1px solid var(--border-color); font-weight: 600;">
+          ✓ ${isVi ? 'THÀNH VIÊN TỪ' : 'MEMBER SINCE'} ${joined.toUpperCase()}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; margin-top: 10px;">
+        <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 12px 6px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <div style="color: #FF5A36; display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background-color: rgba(255, 90, 54, 0.1); flex-shrink: 0;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2c0 0-4 4.5-4 8.5C8 14 10 16 12 16s4-2 4-5.5C16 6.5 12 2 12 2zm0 12c-1.1 0-2-.9-2-2s2-4 2-4 2 2.9 2 4-.9 2-2 2z"></path></svg>
+          </div>
+          <span style="font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.1;">${streakVal}</span>
+          <span style="font-size: 8px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">STREAK</span>
+        </div>
+        <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 12px 6px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <div style="color: #F0AD4E; display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background-color: rgba(240, 173, 78, 0.1); flex-shrink: 0;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          </div>
+          <span style="font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.1;">${stats.highlights || 0}</span>
+          <span style="font-size: 8px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">COLORS</span>
+        </div>
+        <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 12px 6px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <div style="color: #5BC0DE; display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background-color: rgba(91, 192, 222, 0.1); flex-shrink: 0;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          </div>
+          <span style="font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.1;">${stats.notes || 0}</span>
+          <span style="font-size: 8px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">NOTES</span>
+        </div>
+        <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 12px 6px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <div style="color: var(--accent-color); display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background-color: rgba(92, 110, 88, 0.15); flex-shrink: 0;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </div>
+          <span style="font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.1;">${stats.prayers || 0}</span>
+          <span style="font-size: 8px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">PRAYERS</span>
+        </div>
+      </div>
+
+      <div style="width: 100%; background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">ACTIVE STUDY PLAN</div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">${planName}</div>
+      </div>
+    `;
+
+    const okBtn = document.createElement('button');
+    okBtn.className = 'btn btn-secondary';
+    okBtn.textContent = isVi ? 'Đóng' : 'Close';
+    okBtn.style.padding = '8px 24px';
+    okBtn.style.borderRadius = '12px';
+    okBtn.style.fontWeight = '600';
+    okBtn.style.cursor = 'pointer';
+    okBtn.addEventListener('click', closeModal);
+
+    content.appendChild(okBtn);
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+  }
+
   // Interactive pray request button
   window.AURA_APP = window.AURA_APP || {};
   window.AURA_APP.prayForRequest = function(prayerId) {
