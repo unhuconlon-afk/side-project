@@ -3599,8 +3599,14 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   function showHostProfileModal(data) {
+    const existingModal = document.getElementById('host-profile-modal-singleton');
+    if (existingModal && existingModal.parentNode) {
+      existingModal.parentNode.removeChild(existingModal);
+    }
+
     const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
     const modal = document.createElement('div');
+    modal.id = 'host-profile-modal-singleton';
     modal.className = 'modal';
     modal.style.display = 'flex';
     modal.style.justifyContent = 'center';
@@ -6629,7 +6635,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const hostHtml = isAdmin ? `
-        <div class="meeting-host-profile-trigger" data-userid="${m.userId || ''}" data-host="${m.host || ''}" onclick="if(window.AURA_APP && window.AURA_APP.openHostProfile) window.AURA_APP.openHostProfile('${m.userId || ''}', '${(m.host || '').replace(/'/g, "\\'")}');" style="display:flex; align-items:center; gap:10px; margin-bottom:20px; border-top:1px dashed var(--border-color); padding-top:14px; margin-top:auto; cursor:pointer; padding:4px 6px; border-radius:10px; transition:background-color 0.2s ease;" onmouseover="this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.backgroundColor='transparent'" title="${isVi ? 'Xem trạng thái tài khoản chủ trì (Dành cho Quản trị viên)' : 'View host account status (Admin only)'}">
+        <div class="meeting-host-profile-trigger" data-userid="${m.userId || ''}" data-host="${m.host || ''}" style="display:flex; align-items:center; gap:10px; margin-bottom:20px; border-top:1px dashed var(--border-color); padding-top:14px; margin-top:auto; cursor:pointer; padding:4px 6px; border-radius:10px; transition:background-color 0.2s ease;" onmouseover="this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.backgroundColor='transparent'" title="${isVi ? 'Xem trạng thái tài khoản chủ trì (Dành cho Quản trị viên)' : 'View host account status (Admin only)'}">
           <img src="${m.avatar}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid var(--accent-color); box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <div style="display:flex; flex-direction:column;">
             <span style="font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; line-height:1;">${isVi ? 'Chủ trì' : 'Host'}</span>
