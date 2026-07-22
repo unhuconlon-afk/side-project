@@ -643,39 +643,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- REAL-TIME SYSTEM CLOCK & STREAK TIME OBSERVATION ENGINE ---
-  function initSystemClock() {
-    function updateClock() {
-      const now = new Date();
-      const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
-      
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      const timeStr = `${hours}:${minutes}:${seconds}`;
-
-      const options = { month: 'short', day: 'numeric', year: 'numeric' };
-      const dateStr = now.toLocaleDateString(isVi ? 'vi-VN' : 'en-US', options);
-
-      const clockTextEl = document.getElementById('system-time-text');
-      if (clockTextEl) {
-        clockTextEl.textContent = `${timeStr} • ${dateStr}`;
-      }
-
-      const streakDateTextEl = document.getElementById('streak-current-date-text');
-      if (streakDateTextEl) {
-        const todayCalDate = now.toLocaleDateString(isVi ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric' });
-        const completedText = (state && state.profile && state.profile.todayCompleted)
-          ? (isVi ? '✓ Hôm nay đã hoàn thành' : '✓ Completed Today')
-          : (isVi ? '⏳ Chưa hoàn thành hôm nay' : '⏳ Pending Today');
-        streakDateTextEl.textContent = `${todayCalDate} (${completedText})`;
-      }
-    }
-
-    updateClock();
-    setInterval(updateClock, 1000);
-  }
-
   // Save state
   function saveState() {
     const token = localStorage.getItem('aurabible_token');
@@ -2072,10 +2039,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const calendarGrid = document.getElementById('streak-calendar-grid');
     if (calendarGrid) {
       calendarGrid.innerHTML = '';
-      const streak = state.profile.streak || 0;
+      const streak = (state && state.profile) ? (state.profile.streak || 0) : 0;
+      const todayCompleted = (state && state.profile) ? !!state.profile.todayCompleted : false;
       const today = new Date();
       
-      // Generate a clean 28-day streak grid
+      // Generate a clean 28-day streak grid (i=0 is Today, i=27 is 27 days ago)
       for (let i = 27; i >= 0; i--) {
         const d = new Date();
         d.setDate(today.getDate() - i);
@@ -2084,8 +2052,15 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.className = 'streak-day-cell';
         cell.textContent = d.getDate();
         
-        // Mock streak checked-in days ending today
-        if (i < streak) {
+        // Accurate streak check-in cell calculation
+        let isCellCompleted = false;
+        if (todayCompleted) {
+          isCellCompleted = (i < streak);
+        } else {
+          isCellCompleted = (i >= 1 && i <= streak);
+        }
+
+        if (isCellCompleted) {
           cell.classList.add('completed');
         }
         if (i === 0) {
@@ -2097,8 +2072,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update milestone text
       const milestoneText = document.getElementById('streak-milestone-text');
       if (milestoneText) {
-        const nextMilestone = streak <= 7 ? 7 : streak <= 15 ? 15 : streak <= 30 ? 30 : streak + 7;
-        const daysLeft = nextMilestone - streak;
+        const nextMilestone = streak < 7 ? 7 : streak < 15 ? 15 : streak < 30 ? 30 : streak + 7;
+        const daysLeft = Math.max(0, nextMilestone - streak);
         if (daysLeft <= 0) {
           milestoneText.textContent = isVi ? `Chúc mừng! Bạn đạt cột mốc ${nextMilestone} ngày!` : `Congrats! You hit your ${nextMilestone}-day milestone!`;
         } else {
@@ -7817,6 +7792,5 @@ document.addEventListener('DOMContentLoaded', () => {
   if (lobbyBtn) lobbyBtn.addEventListener('click', renderGameView);
 
   // Initial Load Trigger
-  initSystemClock();
   initAuthState();
 });
