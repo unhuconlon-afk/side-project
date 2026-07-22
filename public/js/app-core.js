@@ -7116,7 +7116,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const isGuest = localStorage.getItem('aurabible_guest') === 'true';
 
     if (token) {
-      hideAuthScreen();
       fetchUserState(token);
     } else if (isGuest) {
       hideAuthScreen();
@@ -7154,17 +7153,32 @@ document.addEventListener('DOMContentLoaded', () => {
         logout();
         throw new Error('Session expired');
       }
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
+      }
       return res.json();
     })
     .then(data => {
+      if (data.error) {
+        logout();
+        throw new Error(data.error);
+      }
       // Load settings and profile from server db, preserving defaults if null
       state = {
         ...DEFAULT_STATE,
         ...data,
-        settings: data.settings || DEFAULT_STATE.settings,
+        profile: {
+          ...DEFAULT_STATE.profile,
+          ...(data.profile || {})
+        },
+        settings: {
+          ...DEFAULT_STATE.settings,
+          ...(data.settings || {})
+        },
         ui: { ...DEFAULT_STATE.ui }
       };
       
+      hideAuthScreen();
       renderNavigation();
       verifyStreakValidity();
       applyTheme();
@@ -7183,6 +7197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => {
       console.error('Error fetching state:', err);
+      logout();
       showAuthScreen();
     });
   }
