@@ -5980,15 +5980,41 @@ document.addEventListener('DOMContentLoaded', () => {
     showPlanDetails(planId);
   };
 
-  // --- 14. USER PROFILE VIEW COMPONENT ---
+  // --- 14. USER PROFILE VIEW COMPONENT & CONVENIENCE FEATURES ---
   function renderProfileView() {
+    const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
     const avatarEl = document.getElementById('profile-avatar');
     if (avatarEl) avatarEl.src = state.profile.avatar;
     const nameEl = document.getElementById('profile-name');
     if (nameEl) nameEl.textContent = state.profile.name;
     const joinedEl = document.getElementById('profile-joined');
-    if (joinedEl) joinedEl.textContent = state.profile.joinedDate;
-    
+    if (joinedEl) joinedEl.textContent = state.profile.joinedDate ? (state.profile.joinedDate.startsWith('Joined') || state.profile.joinedDate.startsWith('Tham gia') ? state.profile.joinedDate : `${isVi ? 'Tham gia' : 'Joined'} ${state.profile.joinedDate}`) : (isVi ? 'Tham gia Tháng 5, 2026' : 'Joined May 2026');
+
+    // Username & Handle
+    const usernameEl = document.getElementById('profile-username');
+    const userHandle = `@${(state.profile.name || 'user').toLowerCase().replace(/\s+/g, '_')}`;
+    if (usernameEl) usernameEl.textContent = userHandle;
+
+    // Role Badge
+    const roleBadgeEl = document.getElementById('profile-role-badge');
+    if (roleBadgeEl) {
+      const isAdmin = !!(state.profile && state.profile.isAdmin);
+      roleBadgeEl.innerHTML = isAdmin ? `
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        ${isVi ? 'Quản trị viên' : 'Administrator'}
+      ` : `
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        ${isVi ? 'Thành viên' : 'Member'}
+      `;
+    }
+
+    // Admin Command Portal
+    const adminPortalEl = document.getElementById('profile-admin-portal');
+    if (adminPortalEl) {
+      const isAdmin = !!(state.profile && state.profile.isAdmin);
+      adminPortalEl.style.display = isAdmin ? 'block' : 'none';
+    }
+
     // Inputs sync
     const inputName = document.getElementById('profile-input-name');
     if (inputName) inputName.value = state.profile.name;
@@ -5996,14 +6022,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputEmail) inputEmail.value = state.profile.email;
 
     // Stats
+    const streak = state.profile.streak || 0;
+    const highlightsCount = state.saved.highlights ? state.saved.highlights.length : 0;
+    const notesCount = state.saved.notes ? state.saved.notes.length : 0;
+    const prayersCount = state.prayers ? state.prayers.length : 0;
+
     const streakEl = document.getElementById('stat-streak');
-    if (streakEl) streakEl.textContent = state.profile.streak || 0;
+    if (streakEl) streakEl.textContent = streak;
     const highlightsEl = document.getElementById('stat-highlights');
-    if (highlightsEl) highlightsEl.textContent = state.saved.highlights ? state.saved.highlights.length : 0;
+    if (highlightsEl) highlightsEl.textContent = highlightsCount;
     const notesEl = document.getElementById('stat-notes');
-    if (notesEl) notesEl.textContent = state.saved.notes ? state.saved.notes.length : 0;
+    if (notesEl) notesEl.textContent = notesCount;
     const prayersEl = document.getElementById('stat-prayers');
-    if (prayersEl) prayersEl.textContent = state.prayers ? state.prayers.length : 0;
+    if (prayersEl) prayersEl.textContent = prayersCount;
+
+    // Milestones & Badges
+    const badgeStreakStatus = document.getElementById('badge-streak-status');
+    if (badgeStreakStatus) badgeStreakStatus.textContent = streak >= 7 ? (isVi ? 'Đã hoàn thành ✓' : 'Unlocked ✓') : `${streak}/7 ${isVi ? 'Ngày' : 'Days'}`;
+    const badgeHighlightsStatus = document.getElementById('badge-highlights-status');
+    if (badgeHighlightsStatus) badgeHighlightsStatus.textContent = highlightsCount >= 5 ? (isVi ? 'Đã hoàn thành ✓' : 'Unlocked ✓') : `${highlightsCount}/5 ${isVi ? 'Câu' : 'Verses'}`;
+    const badgePrayersStatus = document.getElementById('badge-prayers-status');
+    if (badgePrayersStatus) badgePrayersStatus.textContent = prayersCount >= 3 ? (isVi ? 'Đã hoàn thành ✓' : 'Unlocked ✓') : `${prayersCount}/3 ${isVi ? 'Cầu nguyện' : 'Prayers'}`;
+    const badgeMasterStatus = document.getElementById('badge-master-status');
+    if (badgeMasterStatus) badgeMasterStatus.textContent = (streak >= 7 && highlightsCount >= 5 && prayersCount >= 3) ? (isVi ? 'Đã hoàn thành ✓' : 'Unlocked ✓') : (isVi ? 'Đang thực hiện' : 'In Progress');
 
     // Recent Active Plan
     const active = state.plansProgress && state.plansProgress.active;
@@ -6024,14 +6065,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activePlanTitle) activePlanTitle.textContent = planDetails.title;
         if (activePlanDesc) activePlanDesc.textContent = planDetails.description;
         if (activePlanPercent) activePlanPercent.textContent = `${percent}%`;
-        if (activePlanDays) activePlanDays.textContent = state.settings.systemLanguage === 'vi' ? `Ngày ${curDay}/${totalDays}` : `Day ${curDay}/${totalDays}`;
+        if (activePlanDays) activePlanDays.textContent = isVi ? `Ngày ${curDay}/${totalDays}` : `Day ${curDay}/${totalDays}`;
         if (activePlanProgress) activePlanProgress.style.width = `${percent}%`;
       }
     } else {
-      if (activePlanTitle) activePlanTitle.textContent = state.settings.systemLanguage === 'vi' ? 'Chưa bắt đầu kế hoạch nào' : 'No Active Plan';
-      if (activePlanDesc) activePlanDesc.textContent = state.settings.systemLanguage === 'vi' ? 'Hãy bắt đầu kế hoạch đọc trong tab Kế Hoạch.' : 'Start a reading plan from the Plans tab.';
+      if (activePlanTitle) activePlanTitle.textContent = isVi ? 'Chưa bắt đầu kế hoạch nào' : 'No Active Plan';
+      if (activePlanDesc) activePlanDesc.textContent = isVi ? 'Hãy bắt đầu kế hoạch đọc trong tab Kế Hoạch.' : 'Start a reading plan from the Plans tab.';
       if (activePlanPercent) activePlanPercent.textContent = '0%';
-      if (activePlanDays) activePlanDays.textContent = state.settings.systemLanguage === 'vi' ? '0/0 Ngày' : '0/0 Days';
+      if (activePlanDays) activePlanDays.textContent = isVi ? '0/0 Ngày' : '0/0 Days';
       if (activePlanProgress) activePlanProgress.style.width = '0%';
     }
 
@@ -6053,12 +6094,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else {
       if (lastHighlightText) {
-        lastHighlightText.textContent = state.settings.systemLanguage === 'vi' ? '“Chưa tô màu câu Kinh Thánh nào.”' : '“No highlights yet.”';
+        lastHighlightText.textContent = isVi ? '“Chưa tô màu câu Kinh Thánh nào.”' : '“No highlights yet.”';
         lastHighlightText.style.borderLeft = '3px solid var(--border-color)';
         lastHighlightText.style.paddingLeft = '10px';
       }
       if (lastHighlightRef) {
-        lastHighlightRef.textContent = state.settings.systemLanguage === 'vi' ? 'Nhấp chọn câu Kinh Thánh để tô màu' : 'Select a verse to apply colors';
+        lastHighlightRef.textContent = isVi ? 'Nhấp chọn câu Kinh Thánh để tô màu' : 'Select a verse to apply colors';
       }
     }
 
@@ -6072,17 +6113,153 @@ document.addEventListener('DOMContentLoaded', () => {
         lastNoteText.textContent = `“${lastN.noteText}”`;
       }
       if (lastNoteRef) {
-        lastNoteRef.textContent = `${lastN.bookId} ${lastN.chapter}:${lastN.verseNum} — Ref: ${lastN.text.substring(0, 30)}...`;
+        lastNoteRef.textContent = `${lastN.bookId} ${lastN.chapter}:${lastN.verseNum} — Ref: ${lastN.text ? lastN.text.substring(0, 30) : ''}...`;
       }
     } else {
       if (lastNoteText) {
-        lastNoteText.textContent = state.settings.systemLanguage === 'vi' ? '“Chưa lưu ghi chú nào.”' : '“No notes saved yet.”';
+        lastNoteText.textContent = isVi ? '“Chưa lưu ghi chú nào.”' : '“No notes saved yet.”';
       }
       if (lastNoteRef) {
-        lastNoteRef.textContent = state.settings.systemLanguage === 'vi' ? 'Thêm ghi chú để lưu cảm nhận của bạn' : 'Add study notes to log observations';
+        lastNoteRef.textContent = isVi ? 'Thêm ghi chú để lưu cảm nhận của bạn' : 'Add study notes to log observations';
       }
     }
   }
+
+  // Bind event listeners for Profile buttons
+  document.addEventListener('DOMContentLoaded', () => {
+    // Copy Handle
+    const copyHandleBtn = document.getElementById('profile-copy-handle-btn');
+    if (copyHandleBtn) {
+      copyHandleBtn.addEventListener('click', () => {
+        const usernameEl = document.getElementById('profile-username');
+        const handleText = usernameEl ? usernameEl.textContent : `@${state.profile.name}`;
+        navigator.clipboard.writeText(handleText).then(() => {
+          showToast(state.settings.systemLanguage === 'vi' ? `Đã sao chép ${handleText}` : `Copied ${handleText}`);
+        }).catch(() => {
+          showToast(handleText);
+        });
+      });
+    }
+
+    // Shortcuts
+    const shortcutPrayers = document.getElementById('shortcut-prayers-btn');
+    if (shortcutPrayers) shortcutPrayers.addEventListener('click', () => navigateToView('prayer'));
+    const shortcutSaved = document.getElementById('shortcut-saved-btn');
+    if (shortcutSaved) shortcutSaved.addEventListener('click', () => navigateToView('saved'));
+    const shortcutNotes = document.getElementById('shortcut-notes-btn');
+    if (shortcutNotes) shortcutNotes.addEventListener('click', () => navigateToView('saved'));
+
+    // Plan Jump
+    const planJumpBtn = document.getElementById('profile-plan-jump-btn');
+    if (planJumpBtn) planJumpBtn.addEventListener('click', () => navigateToView('plans'));
+    const highlightJumpBtn = document.getElementById('profile-highlight-jump-btn');
+    if (highlightJumpBtn) highlightJumpBtn.addEventListener('click', () => navigateToView('bible'));
+    const noteJumpBtn = document.getElementById('profile-note-jump-btn');
+    if (noteJumpBtn) noteJumpBtn.addEventListener('click', () => navigateToView('saved'));
+
+    // Admin Portal Actions
+    const adminConsoleBtn = document.getElementById('profile-admin-console-btn');
+    if (adminConsoleBtn) adminConsoleBtn.addEventListener('click', () => navigateToView('admin'));
+    const adminMeetingsBtn = document.getElementById('profile-admin-meetings-btn');
+    if (adminMeetingsBtn) adminMeetingsBtn.addEventListener('click', () => navigateToView('meetings'));
+
+    // Export Journal
+    const exportJournalBtn = document.getElementById('profile-export-journal-btn');
+    if (exportJournalBtn) {
+      exportJournalBtn.addEventListener('click', () => {
+        const isVi = state.settings.systemLanguage === 'vi';
+        let content = `=== GRATIA DEVOTIONAL JOURNAL EXPORT ===\n`;
+        content += `User: ${state.profile.name} (@${(state.profile.name||'user').toLowerCase().replace(/\s+/g,'_')})\n`;
+        content += `Date: ${new Date().toLocaleDateString()}\n\n`;
+
+        content += `--- SAVED HIGHLIGHTS (${state.saved.highlights ? state.saved.highlights.length : 0}) ---\n`;
+        (state.saved.highlights || []).forEach((h, i) => {
+          content += `${i+1}. [${h.bookId} ${h.chapter}:${h.verseNum}] "${h.text}"\n`;
+        });
+
+        content += `\n--- SAVED STUDY NOTES (${state.saved.notes ? state.saved.notes.length : 0}) ---\n`;
+        (state.saved.notes || []).forEach((n, i) => {
+          content += `${i+1}. [${n.bookId} ${n.chapter}:${n.verseNum}] Note: "${n.noteText}" | Verse: "${n.text}"\n`;
+        });
+
+        content += `\n--- PRAYERS LOG (${state.prayers ? state.prayers.length : 0}) ---\n`;
+        (state.prayers || []).forEach((p, i) => {
+          content += `${i+1}. [${p.category || 'General'}] ${p.title} - ${p.content || ''}\n`;
+        });
+
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Gratia_Spiritual_Journal_${(state.profile.name||'User').replace(/\s+/g,'_')}.txt`;
+        a.click();
+        showToast(isVi ? 'Đã xuất Nhật Ký Tâm Linh thành công' : 'Spiritual Journal exported successfully');
+      });
+    }
+
+    // Avatar Chooser Modal
+    const avatarWrapper = document.getElementById('profile-avatar-wrapper');
+    const avatarModal = document.getElementById('avatar-chooser-modal');
+    const avatarClose = document.getElementById('avatar-chooser-close');
+    const avatarCancel = document.getElementById('avatar-chooser-cancel');
+    const avatarSave = document.getElementById('avatar-chooser-save');
+    const avatarPresetsGrid = document.getElementById('avatar-presets-grid');
+    const customUrlInput = document.getElementById('avatar-custom-url-input');
+    let selectedAvatar = (state.profile && state.profile.avatar) || '';
+
+    const avatarPresets = [
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Elijah',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Sarah',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Marcus',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Grace',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=David',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Hannah',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Samuel',
+      'https://api.dicebear.com/7.x/adventurer/svg?seed=Ruth'
+    ];
+
+    if (avatarWrapper && avatarModal) {
+      avatarWrapper.addEventListener('click', () => {
+        selectedAvatar = state.profile.avatar;
+        if (customUrlInput) customUrlInput.value = '';
+        renderPresets();
+        avatarModal.style.display = 'flex';
+      });
+
+      function renderPresets() {
+        if (!avatarPresetsGrid) return;
+        avatarPresetsGrid.innerHTML = '';
+        avatarPresets.forEach(url => {
+          const img = document.createElement('img');
+          img.src = url;
+          img.style.cssText = `width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid ${selectedAvatar === url ? 'var(--accent-color)' : 'var(--border-color)'}; cursor:pointer; transition:all 0.2s ease;`;
+          img.addEventListener('click', () => {
+            selectedAvatar = url;
+            if (customUrlInput) customUrlInput.value = '';
+            renderPresets();
+          });
+          avatarPresetsGrid.appendChild(img);
+        });
+      }
+
+      const closeModal = () => { avatarModal.style.display = 'none'; };
+      if (avatarClose) avatarClose.addEventListener('click', closeModal);
+      if (avatarCancel) avatarCancel.addEventListener('click', closeModal);
+
+      if (avatarSave) {
+        avatarSave.addEventListener('click', () => {
+          const customUrl = customUrlInput ? customUrlInput.value.trim() : '';
+          const finalUrl = customUrl || selectedAvatar;
+          if (finalUrl) {
+            state.profile.avatar = finalUrl;
+            saveState();
+            renderProfileView();
+            closeModal();
+            showToast(state.settings.systemLanguage === 'vi' ? 'Đã cập nhật ảnh đại diện' : 'Avatar updated');
+          }
+        });
+      }
+    }
+  });
 
   document.getElementById('profile-save-btn').addEventListener('click', () => {
     const newN = document.getElementById('profile-input-name').value.trim();
