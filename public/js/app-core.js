@@ -6628,6 +6628,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('zoom-save-btn').addEventListener('click', () => {
+    const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
     const title = document.getElementById('zoom-input-title').value.trim();
     const desc = document.getElementById('zoom-input-desc').value.trim();
     const scheduleType = document.getElementById('zoom-input-schedule-type').value;
@@ -6642,7 +6643,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const recurrenceDay = document.getElementById('zoom-input-recurrence-day').value;
       const recurrenceTime = document.getElementById('zoom-input-recurrence-time').value.trim();
       if (!title || !desc || !recurrenceTime) {
-        showToast('Please fill out all required fields', 'warning');
+        showToast(isVi ? 'Vui lòng điền đầy đủ các trường yêu cầu' : 'Please fill out all required fields', 'warning');
         return;
       }
       time = `🔄 ${recurrenceDay} at ${recurrenceTime}`;
@@ -6651,7 +6652,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const rawTime = document.getElementById('zoom-input-time').value.trim();
       duration = parseInt(document.getElementById('zoom-input-duration').value);
       if (!title || !desc || !rawTime) {
-        showToast('Please fill out all required fields', 'warning');
+        showToast(isVi ? 'Vui lòng điền đầy đủ các trường yêu cầu' : 'Please fill out all required fields', 'warning');
         return;
       }
       isLive = rawTime.toLowerCase().includes('live') || rawTime.toLowerCase().includes('now');
@@ -6664,38 +6665,46 @@ document.addEventListener('DOMContentLoaded', () => {
       link = `https://zoom.us/j/${randId}?pwd=${randPwd}`;
     }
 
+    const isAdmin = !!(state.profile && state.profile.isAdmin);
+    const meetingPayload = {
+      id: editingMeetingId || `zoom-${Date.now()}`,
+      title,
+      desc,
+      host: (state.profile && state.profile.name) || 'User',
+      avatar: (state.profile && state.profile.avatar) || '',
+      time,
+      duration,
+      isLive,
+      isRecurring,
+      link,
+      isApproved: isAdmin
+    };
+
+    const token = localStorage.getItem('aurabible_token');
+    if (token) {
+      fetch(API_BASE + '/api/meetings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(meetingPayload)
+      }).catch(err => console.error('Error saving meeting to server:', err));
+    }
+
     if (editingMeetingId) {
       const idx = state.meetings.findIndex(m => m.id === editingMeetingId);
       if (idx !== -1) {
         state.meetings[idx] = {
           ...state.meetings[idx],
-          title,
-          desc,
-          time,
-          duration,
-          isLive,
-          isRecurring,
-          link
+          ...meetingPayload
         };
         showToast(isVi ? 'Đã điều chỉnh phòng thông công!' : 'Zoom fellowship room adjusted!');
       }
       editingMeetingId = null;
     } else {
-      const newMeeting = {
-        id: `zoom-${Date.now()}`,
-        title,
-        desc,
-        host: state.profile.name,
-        avatar: state.profile.avatar,
-        time,
-        duration,
-        isLive,
-        isRecurring,
-        link
-      };
-
       state.meetings = state.meetings || [];
-      state.meetings.unshift(newMeeting);
+      state.meetings.unshift(meetingPayload);
 
       // Share to community feed
       state.community.feed.unshift({
@@ -6710,9 +6719,15 @@ document.addEventListener('DOMContentLoaded', () => {
         likedByMe: false,
         comments: []
       });
-      showToast(isVi ? 'Đã lên lịch phòng thông công!' : 'Zoom fellowship room scheduled!');
+
+      if (isAdmin) {
+        showToast(isVi ? 'Đã lên lịch phòng thông công công khai!' : 'Zoom fellowship room scheduled!');
+      } else {
+        showToast(isVi ? 'Đã gửi phòng thông công! Đang chờ Quản trị viên duyệt.' : 'Fellowship room submitted! Pending admin approval.');
+      }
     }
 
+    localStorage.setItem('aurabible_meetings', JSON.stringify(state.meetings));
     saveState();
     closeAllModals();
     renderMeetingsView();
