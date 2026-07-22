@@ -7331,7 +7331,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Handle Logout buttons click
+  // Handle Logout buttons click with confirmation dialog to prevent accidental misclicks
   const logoutButtons = [
     document.getElementById('profile-logout-btn'),
     document.getElementById('sidebar-logout-btn')
@@ -7339,8 +7339,24 @@ document.addEventListener('DOMContentLoaded', () => {
   logoutButtons.forEach(btn => {
     if (btn) {
       btn.addEventListener('click', () => {
-        logout();
-        showToast('Logged out successfully.');
+        const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
+        const title = isVi ? 'Xác nhận Đăng xuất' : 'Confirm Sign Out';
+        const message = isVi 
+          ? 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?' 
+          : 'Are you sure you want to log out of your account?';
+        const confirmBtnText = isVi ? 'Đăng xuất' : 'Log Out';
+        const cancelBtnText = isVi ? 'Hủy' : 'Cancel';
+
+        showConfirmModal(
+          title,
+          message,
+          () => {
+            logout();
+            showToast(isVi ? 'Đã đăng xuất thành công.' : 'Logged out successfully.');
+          },
+          confirmBtnText,
+          cancelBtnText
+        );
       });
     }
   });
