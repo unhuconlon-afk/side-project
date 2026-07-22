@@ -1,7 +1,12 @@
 node_modules/
 database.db
+/data/*.db
+/data/*.db-shm
+/data/*.db-wal
+/docs/raw/
 .gemini/
 .agents/
 .cursor/
 *.log
 *.db-journal
+

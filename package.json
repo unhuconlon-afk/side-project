@@ -2,9 +2,9 @@
   "name": "aurabible-backend",
   "version": "1.0.0",
   "description": "Full-stack backend for AuraBible using Express and SQLite",
-  "main": "server.js",
+  "main": "server/server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server/server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
