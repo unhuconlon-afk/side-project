@@ -14,8 +14,8 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const app = express();
-const PORT = 3000;
-const JWT_SECRET = 'aurabible_super_secret_key_12345';
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'aurabible_super_secret_key_12345';
 
 app.use(cors({
   origin: true,
@@ -98,7 +98,9 @@ function broadcastStats() {
 }
 
 // Initialize Database
-const db = new sqlite3.Database(path.join(__dirname, '../data/database.db'), (err) => {
+// On Render Free tier, use /tmp for writable ephemeral storage. Override with DB_PATH env var for persistent storage.
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../data/database.db');
+const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
     console.error('Error opening database:', err);
   } else {

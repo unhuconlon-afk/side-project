@@ -9,8 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- 1. STATE MANAGEMENT ---
+  // LOCAL: auto-connects to http://localhost:3000
+  // PRODUCTION (Render): set window.AURA_API_BASE in index.html before this script, e.g.:
+  //   <script>window.AURA_API_BASE = "https://your-service.onrender.com";</script>
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
-  const API_BASE = isLocal ? 'http://localhost:3000' : (window.AURA_API_BASE || 'http://localhost:3000');
+  const API_BASE = isLocal ? 'http://localhost:3000' : (window.AURA_API_BASE || '');
   const DEFAULT_STATE = {
     profile: { ...window.BIBLE_DATA.profile },
     saved: {
