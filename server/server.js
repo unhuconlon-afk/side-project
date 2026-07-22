@@ -260,9 +260,14 @@ function createTables() {
         is_recurring INTEGER DEFAULT 0,
         link TEXT,
         user_id INTEGER,
+        is_approved INTEGER DEFAULT 1,
         created_at TEXT
       )
     `);
+
+    db.run("ALTER TABLE meetings ADD COLUMN is_approved INTEGER DEFAULT 1", (err) => {
+      // Ignore column already exists error
+    });
 
     // Seed mock data if database is empty
     seedMockData();
@@ -616,29 +621,64 @@ app.get('/api/user/state', authenticateToken, (req, res) => {
 
 // --- MEETINGS API ENDPOINTS ---
 
-// GET /api/meetings - Fetch all persistent meetings
+// GET /api/meetings - Fetch all persistent meetings (supports auth token for pending rooms)
 app.get('/api/meetings', (req, res) => {
-  db.all("SELECT * FROM meetings WHERE is_approved = 1 ORDER BY is_live DESC, created_at DESC", [], (err, rows) => {
-    if (err) {
-      logSystem('error', 'Failed to fetch meetings', err);
-      return res.status(500).json({ error: 'Database error' });
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  let userId = null;
+  let isAdmin = false;
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      userId = decoded.id;
+      isAdmin = !!decoded.isAdmin;
+    } catch(e) {}
+  }
+
+  const sendResponse = (adminFlag, uId) => {
+    let sql = "SELECT * FROM meetings WHERE is_approved = 1 ORDER BY is_live DESC, created_at DESC";
+    let params = [];
+
+    if (adminFlag) {
+      sql = "SELECT * FROM meetings ORDER BY is_approved ASC, is_live DESC, created_at DESC";
+    } else if (uId) {
+      sql = "SELECT * FROM meetings WHERE is_approved = 1 OR user_id = ? ORDER BY is_approved ASC, is_live DESC, created_at DESC";
+      params = [uId];
     }
-    const meetings = (rows || []).map(r => ({
-      id: r.id,
-      title: r.title,
-      desc: r.desc,
-      host: r.host,
-      avatar: r.avatar,
-      time: r.time,
-      duration: r.duration,
-      isLive: r.is_live === 1,
-      isRecurring: r.is_recurring === 1,
-      link: r.link,
-      userId: r.user_id,
-      isApproved: r.is_approved !== 0
-    }));
-    res.json({ meetings });
-  });
+
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        logSystem('error', 'Failed to fetch meetings', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      const meetings = (rows || []).map(r => ({
+        id: r.id,
+        title: r.title,
+        desc: r.desc,
+        host: r.host,
+        avatar: r.avatar,
+        time: r.time,
+        duration: r.duration,
+        isLive: r.is_live === 1,
+        isRecurring: r.is_recurring === 1,
+        link: r.link,
+        userId: r.user_id,
+        isApproved: r.is_approved !== 0
+      }));
+      res.json({ meetings });
+    });
+  };
+
+  if (userId && !isAdmin) {
+    db.get("SELECT is_admin FROM users WHERE id = ?", [userId], (err, u) => {
+      const userIsAdmin = (u && u.is_admin === 1);
+      sendResponse(userIsAdmin, userId);
+    });
+  } else {
+    sendResponse(isAdmin, userId);
+  }
 });
 
 // POST /api/meetings - Create or Update a meeting

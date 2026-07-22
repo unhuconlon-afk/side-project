@@ -6315,12 +6315,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderMeetingsView() {
     const container = document.getElementById('meetings-grid-container');
-    container.innerHTML = '';
+    if (!container) return;
 
-    const list = state.meetings || [];
-    const filtered = list.filter(m => activeMeetingsFilter === 'all' || (activeMeetingsFilter === 'live' && m.isLive));
+    const token = localStorage.getItem('aurabible_token');
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
-    const isVi = (state.settings.systemLanguage === 'vi');
+    fetch(API_BASE + '/api/meetings', { headers })
+      .then(res => res.json())
+      .then(data => {
+        if (data.meetings && Array.isArray(data.meetings)) {
+          state.meetings = data.meetings;
+          localStorage.setItem('aurabible_meetings', JSON.stringify(data.meetings));
+        }
+        buildMeetingsGrid();
+      })
+      .catch(err => {
+        console.error('Error fetching meetings:', err);
+        buildMeetingsGrid();
+      });
+
+    function buildMeetingsGrid() {
+      container.innerHTML = '';
+      const list = state.meetings || [];
+      const filtered = list.filter(m => activeMeetingsFilter === 'all' || (activeMeetingsFilter === 'live' && m.isLive));
+
+      const isVi = (state.settings.systemLanguage === 'vi');
 
     if (filtered.length === 0) {
       container.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:var(--text-muted); margin:40px 0;">${isVi ? 'Không có phòng thông công nào khớp với bộ lọc này.' : 'No fellowship rooms match this filter.'}</p>`;
@@ -6551,6 +6573,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.zoomCreateModal.style.display = 'flex';
       });
     });
+    }
   }
 
   // Filter Buttons for Meetings
