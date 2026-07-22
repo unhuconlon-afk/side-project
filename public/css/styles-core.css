@@ -2390,7 +2390,32 @@ input:checked + .slider:before {
   }
 }
 
+/* Mobile Responsive Avatar Chooser Modal */
+@media (max-width: 640px) {
+  #avatar-chooser-modal .modal-content {
+    width: 92% !important;
+    padding: 20px 16px !important;
+    border-radius: 20px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
 
+  .avatar-modal-actions {
+    flex-direction: column-reverse !important;
+    gap: 10px !important;
+  }
 
+  .avatar-modal-right-actions {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+  }
 
+  .avatar-modal-right-actions button {
+    flex: 1 !important;
+  }
 
+  #avatar-chooser-reset {
+    width: 100% !important;
+  }
+}
