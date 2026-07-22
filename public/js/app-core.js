@@ -643,6 +643,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // --- REAL-TIME SYSTEM CLOCK & STREAK TIME OBSERVATION ENGINE ---
+  function initSystemClock() {
+    function updateClock() {
+      const now = new Date();
+      const isVi = (state && state.settings && state.settings.systemLanguage === 'vi');
+      
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const timeStr = `${hours}:${minutes}:${seconds}`;
+
+      const options = { month: 'short', day: 'numeric', year: 'numeric' };
+      const dateStr = now.toLocaleDateString(isVi ? 'vi-VN' : 'en-US', options);
+
+      const clockTextEl = document.getElementById('system-time-text');
+      if (clockTextEl) {
+        clockTextEl.textContent = `${timeStr} • ${dateStr}`;
+      }
+
+      const streakDateTextEl = document.getElementById('streak-current-date-text');
+      if (streakDateTextEl) {
+        const todayCalDate = now.toLocaleDateString(isVi ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric' });
+        const completedText = (state && state.profile && state.profile.todayCompleted)
+          ? (isVi ? '✓ Hôm nay đã hoàn thành' : '✓ Completed Today')
+          : (isVi ? '⏳ Chưa hoàn thành hôm nay' : '⏳ Pending Today');
+        streakDateTextEl.textContent = `${todayCalDate} (${completedText})`;
+      }
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+  }
+
   // Save state
   function saveState() {
     const token = localStorage.getItem('aurabible_token');
@@ -7784,5 +7817,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (lobbyBtn) lobbyBtn.addEventListener('click', renderGameView);
 
   // Initial Load Trigger
+  initSystemClock();
   initAuthState();
 });
