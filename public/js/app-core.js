@@ -5381,6 +5381,25 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     };
 
+    window.AURA_APP = window.AURA_APP || {};
+    window.AURA_APP.openHostProfile = function(userId, name) {
+      if (userId) {
+        viewFriendProfile(userId, name || 'Host');
+      } else {
+        showFriendProfileModal({
+          status: 'public',
+          id: 0,
+          name: name || 'Host User',
+          username: (name || 'host').toLowerCase().replace(/\s+/g, '_'),
+          avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name || 'Host')}`,
+          joinedDate: 'May 2026',
+          streak: 31,
+          activePlan: 'Walk in Divine Peace',
+          stats: { highlights: 12, notes: 5, prayers: 8 }
+        });
+      }
+    };
+
     const renderFriendsList = (friendsArray) => {
       friendsContainer.innerHTML = '';
       friendsArray.forEach(f => {
@@ -6448,17 +6467,33 @@ document.addEventListener('DOMContentLoaded', () => {
         <h3 style="font-size:16px; font-weight:700; line-height:1.4; color:var(--text-primary); margin-bottom:8px; height:44px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis;">${m.title}</h3>
         <p style="font-size:12px; color:var(--text-secondary); margin-bottom:20px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; min-height:54px;">${m.desc}</p>
         
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px; border-top:1px dashed var(--border-color); padding-top:14px; margin-top:auto;">
-          <img src="${m.avatar}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid var(--bg-primary); box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+        <div class="meeting-host-profile-trigger" data-userid="${m.userId || ''}" data-host="${m.host || ''}" style="display:flex; align-items:center; gap:10px; margin-bottom:20px; border-top:1px dashed var(--border-color); padding-top:14px; margin-top:auto; cursor:pointer; padding:4px 6px; border-radius:10px; transition:background-color 0.2s ease;" onmouseover="this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.backgroundColor='transparent'" title="${isVi ? 'Nhấp để xem trạng thái tài khoản chủ trì' : 'Click to view host account status'}">
+          <img src="${m.avatar}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid var(--accent-color); box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <div style="display:flex; flex-direction:column;">
             <span style="font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; line-height:1;">${isVi ? 'Chủ trì' : 'Host'}</span>
-            <span style="font-size:12px; color:var(--text-primary); font-weight:600; margin-top:2px;">${m.host}</span>
+            <span style="font-size:12px; color:var(--text-primary); font-weight:700; margin-top:2px; display:inline-flex; align-items:center; gap:4px;">
+              ${m.host} <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--accent-color)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </span>
           </div>
         </div>
 
         ${actionButton}
       `;
       container.appendChild(card);
+    });
+
+    // Bind host profile click triggers
+    container.querySelectorAll('.meeting-host-profile-trigger').forEach(trigger => {
+      trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        const uId = trigger.getAttribute('data-userid');
+        const hostName = trigger.getAttribute('data-host');
+        if (window.AURA_APP && window.AURA_APP.openHostProfile) {
+          window.AURA_APP.openHostProfile(uId, hostName);
+        } else if (typeof viewFriendProfile === 'function') {
+          viewFriendProfile(uId || 0, hostName);
+        }
+      });
     });
 
     // Bind approve, adjust, and delete buttons
