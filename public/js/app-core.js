@@ -6424,17 +6424,44 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         const id = btn.getAttribute('data-id');
+        const token = localStorage.getItem('aurabible_token');
+        
         showConfirmModal(
           isVi ? 'Xác nhận xóa phòng' : 'Confirm Delete Room',
           isVi ? 'Bạn có chắc chắn muốn xóa phòng họp này không?' : 'Are you sure you want to delete this meeting room?',
           () => {
-            state.meetings = (state.meetings || []).filter(m => m.id !== id);
-            if (state.feed) {
-              state.feed = state.feed.filter(f => f.meetingId !== id);
+            const performDeleteCleanup = () => {
+              state.meetings = (state.meetings || []).filter(m => m.id !== id);
+              if (state.feed) {
+                state.feed = state.feed.filter(f => f.meetingId !== id);
+              }
+              localStorage.setItem('aurabible_meetings', JSON.stringify(state.meetings));
+              renderMeetingsView();
+              showToast(isVi ? 'Đã xóa phòng họp thành công.' : 'Meeting room deleted successfully.');
+            };
+
+            if (token) {
+              fetch(API_BASE + `/api/meetings/${id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              })
+              .then(res => res.json())
+              .then(data => {
+                if (data.error) {
+                  showToast(data.error);
+                } else {
+                  performDeleteCleanup();
+                }
+              })
+              .catch(err => {
+                console.error(err);
+                performDeleteCleanup();
+              });
+            } else {
+              performDeleteCleanup();
             }
-            saveState();
-            renderMeetingsView();
-            showToast(isVi ? 'Đã xóa phòng họp thành công.' : 'Meeting room deleted successfully.');
           },
           isVi ? 'Xóa' : 'Delete',
           isVi ? 'Hủy' : 'Cancel'
@@ -7191,6 +7218,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state = {
         ...DEFAULT_STATE,
         ...data,
+        meetings: (data.meetings && Array.isArray(data.meetings)) ? data.meetings : DEFAULT_STATE.meetings,
         profile: {
           ...DEFAULT_STATE.profile,
           ...(data.profile || {})
@@ -7201,6 +7229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         ui: { ...DEFAULT_STATE.ui }
       };
+      localStorage.setItem('aurabible_meetings', JSON.stringify(state.meetings));
       
       hideAuthScreen();
       renderNavigation();

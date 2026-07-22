@@ -246,6 +246,24 @@ function createTables() {
       )
     `);
 
+    // 10. Meetings Table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS meetings (
+        id TEXT PRIMARY KEY,
+        title TEXT,
+        desc TEXT,
+        host TEXT,
+        avatar TEXT,
+        time TEXT,
+        duration INTEGER,
+        is_live INTEGER DEFAULT 0,
+        is_recurring INTEGER DEFAULT 0,
+        link TEXT,
+        user_id INTEGER,
+        created_at TEXT
+      )
+    `);
+
     // Seed mock data if database is empty
     seedMockData();
   });
@@ -254,6 +272,43 @@ function createTables() {
 function seedMockData() {
   const salt = bcrypt.genSaltSync(10);
   const hash = bcrypt.hashSync('password123', salt);
+
+  // Seed default meetings if table is empty
+  db.get("SELECT COUNT(*) as count FROM meetings", [], (err, row) => {
+    if (!err && row && row.count === 0) {
+      const stmt = db.prepare(`
+        INSERT INTO meetings (id, title, desc, host, avatar, time, duration, is_live, is_recurring, link, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(
+        'zoom-1',
+        'Anxiety Study Fellowship',
+        "Let's gather to review our daily readings on anxiety and encourage one another.",
+        'Sarah Jenkins',
+        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
+        'Live Now',
+        40,
+        1,
+        0,
+        'https://zoom.us/j/5558889991?pwd=PeacefulStudyRoom101',
+        new Date().toISOString()
+      );
+      stmt.run(
+        'zoom-2',
+        'Morning Prayer & Devotional Circle',
+        "A daily morning communion to seek God's presence and align our hearts for the day.",
+        'Marcus Brody',
+        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150',
+        'Today at 7:00 PM',
+        60,
+        0,
+        0,
+        'https://zoom.us/j/4442223335?pwd=MorningGraceCircle302',
+        new Date().toISOString()
+      );
+      stmt.finalize();
+    }
+  });
 
   // Guarantee Admin user exists in all databases
   db.run(`
@@ -482,50 +537,178 @@ app.get('/api/user/state', authenticateToken, (req, res) => {
             };
           }
           
-          try {
-            const responseState = {
-              profile: {
-                username: profile.username,
-                name: profile.name,
-                email: profile.email,
-                avatar: profile.avatar,
-                streak: profile.streak,
-                joinedDate: profile.joined_date,
-                isAdmin: profile.is_admin === 1
-              },
-              saved: {
-                highlights: activeSavedList.filter(i => i && i.type === 'highlight').map(i => ({
-                  id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, color: i.color, translation: i.translation, time: i.created_at
+          db.all("SELECT * FROM meetings ORDER BY is_live DESC, created_at DESC", [], (err, mRows) => {
+            const activeMeetingsList = (mRows || []).map(r => ({
+              id: r.id,
+              title: r.title,
+              desc: r.desc,
+              host: r.host,
+              avatar: r.avatar,
+              time: r.time,
+              duration: r.duration,
+              isLive: r.is_live === 1,
+              isRecurring: r.is_recurring === 1,
+              link: r.link
+            }));
+
+            try {
+              const responseState = {
+                profile: {
+                  username: profile.username,
+                  name: profile.name,
+                  email: profile.email,
+                  avatar: profile.avatar,
+                  streak: profile.streak,
+                  joinedDate: profile.joined_date,
+                  isAdmin: profile.is_admin === 1
+                },
+                saved: {
+                  highlights: activeSavedList.filter(i => i && i.type === 'highlight').map(i => ({
+                    id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, color: i.color, translation: i.translation, time: i.created_at
+                  })),
+                  bookmarks: activeSavedList.filter(i => i && i.type === 'bookmark').map(i => ({
+                    id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, translation: i.translation, time: i.created_at
+                  })),
+                  notes: activeSavedList.filter(i => i && i.type === 'note').map(i => ({
+                    id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, noteText: i.note_text, translation: i.translation, time: i.created_at
+                  }))
+                },
+                prayers: activePrayersList.map(p => ({
+                  id: p.id, text: p.text, isPublic: !!p.is_public, isAnswered: !!p.is_answered, date: p.created_at
                 })),
-                bookmarks: activeSavedList.filter(i => i && i.type === 'bookmark').map(i => ({
-                  id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, translation: i.translation, time: i.created_at
-                })),
-                notes: activeSavedList.filter(i => i && i.type === 'note').map(i => ({
-                  id: i.id, bookId: i.book_id, chapter: i.chapter, verseNum: i.verse_num, text: i.text, noteText: i.note_text, translation: i.translation, time: i.created_at
-                }))
-              },
-              prayers: activePrayersList.map(p => ({
-                id: p.id, text: p.text, isPublic: !!p.is_public, isAnswered: !!p.is_answered, date: p.created_at
-              })),
-              settings: {
-                darkMode: !!activeSettings.dark_mode,
-                notifications: !!activeSettings.notifications,
-                offline: !!activeSettings.offline,
-                systemLanguage: activeSettings.system_language,
-                reader: {
-                  fontSize: activeSettings.font_size,
-                  lineHeight: activeSettings.line_height,
-                  verseLayout: activeSettings.verse_layout
+                meetings: activeMeetingsList,
+                settings: {
+                  darkMode: !!activeSettings.dark_mode,
+                  notifications: !!activeSettings.notifications,
+                  offline: !!activeSettings.offline,
+                  systemLanguage: activeSettings.system_language,
+                  reader: {
+                    fontSize: activeSettings.font_size,
+                    lineHeight: activeSettings.line_height,
+                    verseLayout: activeSettings.verse_layout
+                  }
                 }
-              }
-            };
-            res.json(responseState);
-          } catch(compilationError) {
-            console.error('Error compiling user state response:', compilationError);
-            res.status(500).json({ error: 'Internal processing error' });
-          }
+              };
+              res.json(responseState);
+            } catch(compilationError) {
+              console.error('Error compiling user state response:', compilationError);
+              res.status(500).json({ error: 'Internal processing error' });
+            }
+          });
         });
       });
+    });
+  });
+});
+
+// --- MEETINGS API ENDPOINTS ---
+
+// GET /api/meetings - Fetch all persistent meetings
+app.get('/api/meetings', (req, res) => {
+  db.all("SELECT * FROM meetings ORDER BY is_live DESC, created_at DESC", [], (err, rows) => {
+    if (err) {
+      logSystem('error', 'Failed to fetch meetings', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    const meetings = (rows || []).map(r => ({
+      id: r.id,
+      title: r.title,
+      desc: r.desc,
+      host: r.host,
+      avatar: r.avatar,
+      time: r.time,
+      duration: r.duration,
+      isLive: r.is_live === 1,
+      isRecurring: r.is_recurring === 1,
+      link: r.link
+    }));
+    res.json({ meetings });
+  });
+});
+
+// POST /api/meetings - Create or Update a meeting
+app.post('/api/meetings', authenticateToken, (req, res) => {
+  const { id, title, desc, host, avatar, time, duration, isLive, isRecurring, link } = req.body;
+  if (!title || !link) {
+    return res.status(400).json({ error: 'Title and link are required' });
+  }
+
+  const meetingId = id || `zoom-${Date.now()}`;
+  const meetingHost = host || req.user.name || req.user.username;
+  const meetingAvatar = avatar || req.user.avatar || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + req.user.username;
+  const now = new Date().toISOString();
+
+  db.run(`
+    INSERT OR REPLACE INTO meetings 
+    (id, title, desc, host, avatar, time, duration, is_live, is_recurring, link, user_id, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    meetingId,
+    title,
+    desc || '',
+    meetingHost,
+    meetingAvatar,
+    time || 'Scheduled',
+    duration || 30,
+    isLive ? 1 : 0,
+    isRecurring ? 1 : 0,
+    link,
+    req.user.id,
+    now
+  ], function(err) {
+    if (err) {
+      logSystem('error', 'Failed to save meeting', err);
+      return res.status(500).json({ error: 'Failed to save meeting' });
+    }
+    logSystem('info', `Meeting created/updated: ${title} (ID: ${meetingId}) by ${req.user.username}`);
+    res.json({
+      success: true,
+      meeting: {
+        id: meetingId,
+        title,
+        desc: desc || '',
+        host: meetingHost,
+        avatar: meetingAvatar,
+        time: time || 'Scheduled',
+        duration: duration || 30,
+        isLive: !!isLive,
+        isRecurring: !!isRecurring,
+        link
+      }
+    });
+  });
+});
+
+// DELETE /api/meetings/:id - Delete a meeting (by Host or Admin)
+app.delete('/api/meetings/:id', authenticateToken, (req, res) => {
+  const meetingId = req.params.id;
+
+  db.get("SELECT * FROM meetings WHERE id = ?", [meetingId], (err, meeting) => {
+    if (err) {
+      logSystem('error', 'Failed to query meeting for delete', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (!meeting) {
+      return res.json({ success: true, message: 'Meeting already deleted' });
+    }
+
+    const isAdmin = req.user.is_admin === 1;
+    const isHost = (meeting.user_id === req.user.id || meeting.host === req.user.name || meeting.host === req.user.username);
+
+    if (!isAdmin && !isHost) {
+      logSystem('warn', `Unauthorized delete attempt on meeting ${meetingId} by user ${req.user.username}`);
+      return res.status(403).json({ error: 'Unauthorized to delete this meeting room' });
+    }
+
+    db.run("DELETE FROM meetings WHERE id = ?", [meetingId], (err) => {
+      if (err) {
+        logSystem('error', `Failed to delete meeting ${meetingId}`, err);
+        return res.status(500).json({ error: 'Failed to delete meeting' });
+      }
+
+      logSystem('info', `Meeting deleted: ${meetingId} by ${req.user.username} (Admin: ${isAdmin})`);
+      res.json({ success: true, id: meetingId });
     });
   });
 });
