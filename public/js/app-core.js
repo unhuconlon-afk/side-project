@@ -6366,7 +6366,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const secondaryHover = `this.style.backgroundColor='var(--bg-primary)'; this.style.borderColor='var(--accent-color)'`;
       const secondaryOut = `this.style.backgroundColor='var(--bg-tertiary)'; this.style.borderColor='var(--border-color)'`;
 
-      const isHost = !!(state.profile && (m.host === state.profile.name || m.host === state.profile.username));
+      const userHostName = (state.profile && state.profile.name || '').toLowerCase();
+      const userUserName = (state.profile && state.profile.username || '').toLowerCase();
+      const mHost = (m.host || '').toLowerCase();
+
+      const isHost = !!(
+        (m.userId && state.profile && state.profile.id && m.userId === state.profile.id) ||
+        (mHost && (mHost === userHostName || mHost === userUserName))
+      );
       const isAdmin = !!(state.profile && state.profile.isAdmin);
       const canEdit = isHost || isAdmin;
       const canDelete = isHost || isAdmin;

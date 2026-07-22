@@ -277,8 +277,8 @@ function seedMockData() {
   db.get("SELECT COUNT(*) as count FROM meetings", [], (err, row) => {
     if (!err && row && row.count === 0) {
       const stmt = db.prepare(`
-        INSERT INTO meetings (id, title, desc, host, avatar, time, duration, is_live, is_recurring, link, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO meetings (id, title, desc, host, avatar, time, duration, is_live, is_recurring, link, user_id, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         'zoom-1',
@@ -291,6 +291,7 @@ function seedMockData() {
         1,
         0,
         'https://zoom.us/j/5558889991?pwd=PeacefulStudyRoom101',
+        100,
         new Date().toISOString()
       );
       stmt.run(
@@ -304,6 +305,7 @@ function seedMockData() {
         0,
         0,
         'https://zoom.us/j/4442223335?pwd=MorningGraceCircle302',
+        101,
         new Date().toISOString()
       );
       stmt.finalize();
@@ -375,15 +377,18 @@ const authenticateToken = (req, res, next) => {
   
   if (!token) return res.status(401).json({ error: 'Access token missing' });
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ error: 'Token expired or invalid' });
     
-    // Check if user still exists in DB
-    db.get("SELECT id FROM users WHERE id = ?", [user.id], (err, row) => {
-      if (err || !row) {
+    // Check if user still exists in DB and fetch full profile
+    db.get("SELECT id, username, name, email, avatar, streak, is_admin FROM users WHERE id = ?", [decoded.id], (err, user) => {
+      if (err || !user) {
         return res.status(401).json({ error: 'User does not exist or has been deleted' });
       }
-      req.user = user;
+      req.user = {
+        ...user,
+        isAdmin: user.is_admin === 1
+      };
       next();
     });
   });
@@ -693,8 +698,16 @@ app.delete('/api/meetings/:id', authenticateToken, (req, res) => {
       return res.json({ success: true, message: 'Meeting already deleted' });
     }
 
-    const isAdmin = req.user.is_admin === 1;
-    const isHost = (meeting.user_id === req.user.id || meeting.host === req.user.name || meeting.host === req.user.username);
+    const isAdmin = (req.user.is_admin === 1 || req.user.isAdmin === true);
+    
+    const userHostName = (req.user.name || '').toLowerCase();
+    const userUserName = (req.user.username || '').toLowerCase();
+    const meetingHost = (meeting.host || '').toLowerCase();
+
+    const isHost = (
+      (meeting.user_id && meeting.user_id === req.user.id) ||
+      (meetingHost && (meetingHost === userHostName || meetingHost === userUserName))
+    );
 
     if (!isAdmin && !isHost) {
       logSystem('warn', `Unauthorized delete attempt on meeting ${meetingId} by user ${req.user.username}`);
