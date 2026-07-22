@@ -6351,11 +6351,18 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       
       const isRec = m.isRecurring || m.time.startsWith('🔄');
-      const badge = m.isLive 
-        ? `<span class="card-tag" style="background-color:rgba(92,184,92,0.15); color:#2E7D32; border:1px solid rgba(92,184,92,0.3); font-weight:800; display:inline-flex; align-items:center; gap:6px; margin: 0;">
+      const isPending = (m.isApproved === false);
+
+      let badge = '';
+      if (isPending) {
+        badge = `<span class="card-tag" style="background-color:rgba(245,158,11,0.15); color:#D97706; border:1px solid rgba(245,158,11,0.3); font-weight:700; display:inline-flex; align-items:center; gap:6px; margin: 0;">⏳ ${isVi ? 'Chờ Quản trị viên duyệt' : 'Pending Admin Approval'}</span>`;
+      } else if (m.isLive) {
+        badge = `<span class="card-tag" style="background-color:rgba(92,184,92,0.15); color:#2E7D32; border:1px solid rgba(92,184,92,0.3); font-weight:800; display:inline-flex; align-items:center; gap:6px; margin: 0;">
             <span style="width:8px; height:8px; border-radius:50%; background-color:#2E7D32; display:inline-block; animation: pulse 1.5s infinite;"></span> ${isVi ? 'Đang Diễn Ra' : 'Live Now'}
-           </span>`
-        : `<span class="card-tag" style="background-color:${isRec ? 'rgba(92, 110, 88, 0.12)' : 'var(--bg-primary)'}; color:${isRec ? 'var(--accent-color)' : 'var(--text-secondary)'}; font-weight: 600; margin: 0; border: 1px solid var(--border-color);">${translateMeetingTime(m.time)}</span>`;
+           </span>`;
+      } else {
+        badge = `<span class="card-tag" style="background-color:${isRec ? 'rgba(92, 110, 88, 0.12)' : 'var(--bg-primary)'}; color:${isRec ? 'var(--accent-color)' : 'var(--text-secondary)'}; font-weight: 600; margin: 0; border: 1px solid var(--border-color);">${translateMeetingTime(m.time)}</span>`;
+      }
 
       const primaryBtnStyle = `width:100%; text-align:center; padding:12px 0; font-size:13px; font-weight:700; border-radius:12px; background-color:var(--accent-color); color:var(--accent-text); border:none; cursor:pointer; transition:var(--transition-smooth); margin-top:auto; text-decoration:none; display:inline-block;`;
       const secondaryBtnStyle = `width:100%; text-align:center; padding:12px 0; font-size:13px; font-weight:700; border-radius:12px; background-color:var(--bg-tertiary); border:1px solid var(--border-color); color:var(--text-primary); cursor:pointer; transition:var(--transition-smooth); margin-top:auto; text-decoration:none; display:inline-block;`;
@@ -6377,21 +6384,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const isAdmin = !!(state.profile && state.profile.isAdmin);
       const canEdit = isHost || isAdmin;
       const canDelete = isHost || isAdmin;
+      const canApprove = isAdmin && isPending;
 
       let actionButton = '';
-      if (canEdit || canDelete) {
+      if (canEdit || canDelete || canApprove) {
         actionButton = `
-          <div style="display:flex; gap:10px; margin-top:auto; width:100%;">
-            <a href="${m.link}" target="_blank" class="btn" style="flex-grow:1; ${m.isLive ? primaryBtnStyle : secondaryBtnStyle}" ${m.isLive ? `onmouseover="${primaryHover}" onmouseout="${primaryOut}"` : `onmouseover="${secondaryHover}" onmouseout="${secondaryOut}"`}>
+          <div style="display:flex; gap:8px; margin-top:auto; width:100%; flex-wrap:wrap;">
+            <a href="${m.link}" target="_blank" class="btn" style="flex-grow:1; min-width:80px; ${m.isLive ? primaryBtnStyle : secondaryBtnStyle}" ${m.isLive ? `onmouseover="${primaryHover}" onmouseout="${primaryOut}"` : `onmouseover="${secondaryHover}" onmouseout="${secondaryOut}"`}>
               ${m.isLive ? (isVi ? 'Tham gia' : 'Join') : (isVi ? 'Mở phòng' : 'Open Link')}
             </a>
+            ${canApprove ? `
+              <button class="btn btn-approve-meeting" data-id="${m.id}" style="padding:0 12px; height:42px; display:inline-flex; align-items:center; justify-content:center; background-color:#2E7D32; border:none; border-radius:12px; cursor:pointer; color:#FFFFFF; font-weight:700; font-size:12px; gap:4px;" title="${isVi ? 'Duyệt phòng' : 'Approve Room'}">
+                ✓ ${isVi ? 'Duyệt' : 'Approve'}
+              </button>
+            ` : ''}
             ${canEdit ? `
-              <button class="btn btn-secondary btn-icon-only btn-adjust-meeting" data-id="${m.id}" style="padding:0 12px; display:inline-flex; align-items:center; justify-content:center; background-color:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:12px; cursor:pointer; color:var(--text-primary);" title="${isVi ? 'Chỉnh sửa' : 'Adjust'}">
+              <button class="btn btn-secondary btn-icon-only btn-adjust-meeting" data-id="${m.id}" style="padding:0 12px; height:42px; display:inline-flex; align-items:center; justify-content:center; background-color:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:12px; cursor:pointer; color:var(--text-primary);" title="${isVi ? 'Chỉnh sửa' : 'Adjust'}">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
               </button>
             ` : ''}
             ${canDelete ? `
-              <button class="btn btn-secondary btn-icon-only btn-delete-meeting" data-id="${m.id}" style="padding:0 12px; display:inline-flex; align-items:center; justify-content:center; background-color:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:12px; cursor:pointer; color:#D9534F;" title="${isVi ? 'Xóa phòng' : 'Delete Room'}">
+              <button class="btn btn-secondary btn-icon-only btn-delete-meeting" data-id="${m.id}" style="padding:0 12px; height:42px; display:inline-flex; align-items:center; justify-content:center; background-color:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:12px; cursor:pointer; color:#D9534F;" title="${isVi ? 'Xóa phòng' : 'Delete Room'}">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             ` : ''}
@@ -6424,6 +6437,38 @@ document.addEventListener('DOMContentLoaded', () => {
         ${actionButton}
       `;
       container.appendChild(card);
+    });
+
+    // Bind approve, adjust, and delete buttons
+    container.querySelectorAll('.btn-approve-meeting').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = btn.getAttribute('data-id');
+        const token = localStorage.getItem('aurabible_token');
+        if (token) {
+          fetch(API_BASE + `/api/meetings/approve/${id}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              showToast(data.error);
+            } else {
+              const mObj = (state.meetings || []).find(x => x.id === id);
+              if (mObj) mObj.isApproved = true;
+              renderMeetingsView();
+              showToast(isVi ? 'Đã phê duyệt phòng họp công khai!' : 'Meeting room approved for public!');
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            showToast('Failed to approve meeting');
+          });
+        }
+      });
     });
 
     // Bind adjust and delete buttons

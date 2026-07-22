@@ -542,7 +542,13 @@ app.get('/api/user/state', authenticateToken, (req, res) => {
             };
           }
           
-          db.all("SELECT * FROM meetings ORDER BY is_live DESC, created_at DESC", [], (err, mRows) => {
+          const isAdminUser = profile.is_admin === 1;
+          const queryMeetingsSql = isAdminUser 
+            ? "SELECT * FROM meetings ORDER BY is_approved ASC, is_live DESC, created_at DESC" 
+            : "SELECT * FROM meetings WHERE is_approved = 1 OR user_id = ? ORDER BY is_live DESC, created_at DESC";
+          const queryMeetingsParams = isAdminUser ? [] : [userId];
+
+          db.all(queryMeetingsSql, queryMeetingsParams, (err, mRows) => {
             const activeMeetingsList = (mRows || []).map(r => ({
               id: r.id,
               title: r.title,
@@ -553,7 +559,9 @@ app.get('/api/user/state', authenticateToken, (req, res) => {
               duration: r.duration,
               isLive: r.is_live === 1,
               isRecurring: r.is_recurring === 1,
-              link: r.link
+              link: r.link,
+              userId: r.user_id,
+              isApproved: r.is_approved !== 0
             }));
 
             try {
@@ -610,7 +618,7 @@ app.get('/api/user/state', authenticateToken, (req, res) => {
 
 // GET /api/meetings - Fetch all persistent meetings
 app.get('/api/meetings', (req, res) => {
-  db.all("SELECT * FROM meetings ORDER BY is_live DESC, created_at DESC", [], (err, rows) => {
+  db.all("SELECT * FROM meetings WHERE is_approved = 1 ORDER BY is_live DESC, created_at DESC", [], (err, rows) => {
     if (err) {
       logSystem('error', 'Failed to fetch meetings', err);
       return res.status(500).json({ error: 'Database error' });
@@ -625,7 +633,9 @@ app.get('/api/meetings', (req, res) => {
       duration: r.duration,
       isLive: r.is_live === 1,
       isRecurring: r.is_recurring === 1,
-      link: r.link
+      link: r.link,
+      userId: r.user_id,
+      isApproved: r.is_approved !== 0
     }));
     res.json({ meetings });
   });
@@ -643,10 +653,14 @@ app.post('/api/meetings', authenticateToken, (req, res) => {
   const meetingAvatar = avatar || req.user.avatar || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + req.user.username;
   const now = new Date().toISOString();
 
+  // If user is Admin, auto-approve (1). If normal user, set to pending approval (0).
+  const isAdmin = req.user.is_admin === 1 || req.user.isAdmin === true;
+  const isApproved = isAdmin ? 1 : 0;
+
   db.run(`
     INSERT OR REPLACE INTO meetings 
-    (id, title, desc, host, avatar, time, duration, is_live, is_recurring, link, user_id, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (id, title, desc, host, avatar, time, duration, is_live, is_recurring, link, user_id, is_approved, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     meetingId,
     title,
@@ -659,13 +673,14 @@ app.post('/api/meetings', authenticateToken, (req, res) => {
     isRecurring ? 1 : 0,
     link,
     req.user.id,
+    isApproved,
     now
   ], function(err) {
     if (err) {
       logSystem('error', 'Failed to save meeting', err);
       return res.status(500).json({ error: 'Failed to save meeting' });
     }
-    logSystem('info', `Meeting created/updated: ${title} (ID: ${meetingId}) by ${req.user.username}`);
+    logSystem('info', `Meeting created/updated: ${title} (ID: ${meetingId}) by ${req.user.username} (Approved: ${isApproved})`);
     res.json({
       success: true,
       meeting: {
@@ -678,9 +693,29 @@ app.post('/api/meetings', authenticateToken, (req, res) => {
         duration: duration || 30,
         isLive: !!isLive,
         isRecurring: !!isRecurring,
-        link
+        link,
+        userId: req.user.id,
+        isApproved: isApproved === 1
       }
     });
+  });
+});
+
+// POST /api/meetings/approve/:id - Admin approve a meeting room
+app.post('/api/meetings/approve/:id', authenticateToken, (req, res) => {
+  const isAdmin = req.user.is_admin === 1 || req.user.isAdmin === true;
+  if (!isAdmin) {
+    return res.status(403).json({ error: 'Only administrators can approve meeting rooms' });
+  }
+
+  const meetingId = req.params.id;
+  db.run("UPDATE meetings SET is_approved = 1 WHERE id = ?", [meetingId], function(err) {
+    if (err) {
+      logSystem('error', `Failed to approve meeting ${meetingId}`, err);
+      return res.status(500).json({ error: 'Failed to approve meeting room' });
+    }
+    logSystem('info', `Meeting room approved: ${meetingId} by admin ${req.user.username}`);
+    res.json({ success: true, id: meetingId, isApproved: true });
   });
 });
 
