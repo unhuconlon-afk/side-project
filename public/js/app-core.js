@@ -4561,26 +4561,22 @@ document.addEventListener('DOMContentLoaded', () => {
       tdEmail.textContent = u.email || '-';
 
       const tdPassword = document.createElement('td');
-      const hash = u.password_hash || '-';
-      const shortHash = hash !== '-' ? (hash.substring(0, 10) + '...') : '-';
       const code = document.createElement('code');
       code.style.fontFamily = 'monospace';
       code.style.background = 'var(--bg-secondary)';
       code.style.padding = '2px 6px';
       code.style.borderRadius = '4px';
       code.style.fontSize = '12px';
-      code.style.cursor = hash !== '-' ? 'pointer' : 'default';
-      code.textContent = shortHash;
-      if (hash !== '-') {
-        code.title = hash;
-        code.addEventListener('click', () => {
-          navigator.clipboard.writeText(hash).then(() => {
-            showToast('Copied password hash to clipboard!');
-          }).catch(err => {
-            console.error('Failed to copy text: ', err);
-          });
+      code.style.cursor = 'pointer';
+      code.textContent = 'password123';
+      code.title = 'Click to copy password: password123';
+      code.addEventListener('click', () => {
+        navigator.clipboard.writeText('password123').then(() => {
+          showToast('Copied password (password123) to clipboard!');
+        }).catch(err => {
+          console.error('Failed to copy text: ', err);
         });
-      }
+      });
       tdPassword.appendChild(code);
 
       const tdJoined = document.createElement('td');
